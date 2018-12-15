@@ -1,0 +1,28 @@
+{
+  "name": "elevim",
+  "version": "0.0.1",
+  "description": "Neovim GUI built on Electron",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "lint": "tslint -c tslint.json -p tsconfig.json",
+    "start": "npm run build && electron ./dist/main.js"
+  },
+  "repository": "https://github.com/hiroebe/elevim",
+  "author": "Hironori Ebe",
+  "dependencies": {
+    "neovim": "^4.2.1",
+    "toml": "^2.3.3",
+    "wcwidth": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/msgpack-lite": "^0.1.6",
+    "@types/node": "^10.12.15",
+    "@types/wcwidth": "^1.0.0",
+    "electron": "^3.0.10",
+    "electron-packager": "^13.0.1",
+    "tslint": "^5.10.0",
+    "typescript": "^3.2.2"
+  }
+}
