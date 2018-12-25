@@ -185,10 +185,12 @@ export default class NeovimScreen {
 
     private drawChars(text: string, hlID: number, row: number, col: number) {
         const hl = this.store.hlMap.get(hlID);
-        // const [fg, bg] = this.store.hlToHexString(hl);
         const defaultHl = this.store.hlMap.get(0);
-        const fg = hl.fg || defaultHl.fg;
-        const bg = hl.bg || defaultHl.bg;
+        let fg = hl.fg || defaultHl.fg;
+        let bg = hl.bg || defaultHl.bg;
+        if (hl.reverse) {
+            [fg, bg] = [bg, fg];
+        }
 
         const { width, height } = this.store.font;
         const x = col * width;
