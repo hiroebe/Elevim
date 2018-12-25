@@ -213,6 +213,15 @@ export default class NeovimScreen {
             this.hiddenCtx.lineTo(x + rectWidth, y + offsetY);
             this.hiddenCtx.stroke();
         }
+
+        if (col <= 0) {
+            return;
+        }
+        const beforeCell = this.store.grid[row][col - 1];
+        const beforeHl = this.store.hlMap.get(beforeCell.hlID);
+        if (beforeHl.italic) {
+            this.drawChars(beforeCell.text, beforeCell.hlID, row, col - 1);
+        }
     }
 
     private redrawAll() {
