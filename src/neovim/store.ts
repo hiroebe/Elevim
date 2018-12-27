@@ -2,26 +2,26 @@ import { remote } from 'electron';
 import { EventEmitter } from 'events';
 import { colorToHexString } from '../utils';
 
-interface Font {
+export interface Font {
     family: string;
     size: number;
     width: number;
     height: number;
 }
 
-interface Size {
+export interface Size {
     rows: number;
     cols: number;
     width: number;
     height: number;
 }
 
-interface Cursor {
+export interface Cursor {
     row: number;
     col: number;
 }
 
-interface ModeInfo {
+export interface ModeInfo {
     name: string;
     shortName: string;
     cursorShape: 'block' | 'horizontal' | 'vertical';
@@ -29,7 +29,7 @@ interface ModeInfo {
     attrID: number;
 }
 
-interface Highlight {
+export interface Highlight {
     fg: string;
     bg: string;
     sp: string;
@@ -40,7 +40,7 @@ interface Highlight {
     undercurl: boolean;
 }
 
-interface Cell {
+export interface Cell {
     text: string;
     hlID: number;
 }
@@ -126,6 +126,12 @@ export default class NeovimStore {
     public emit(event: 'popupmenu-select', select: number): boolean;
     public emit(event: 'popupmenu-hide'): boolean;
     public emit(event: 'tabline-update', tabnr: number, tabs: string[]): boolean;
+    public emit(event: 'cmdline-show', content: Cell[], pos: number, firstc: string, indent: number, level: number): boolean;
+    public emit(event: 'cmdline-pos', pos: number, level: number): boolean;
+    public emit(event: 'cmdline-hide'): boolean;
+    public emit(event: 'wildmenu-show', items: string[]): boolean;
+    public emit(event: 'wildmenu-select', selected: number): boolean;
+    public emit(event: 'wildmenu-hide'): boolean;
     public emit(event: string, ...args: any[]): boolean {
         const ret = this.eventEmitter.emit(event, ...args);
         if (event === 'update-font-size') {
@@ -154,6 +160,12 @@ export default class NeovimStore {
     public on(event: 'popupmenu-select', fn: (selected: number) => void): this;
     public on(event: 'popupmenu-hide', fn: () => void): this;
     public on(event: 'tabline-update', fn: (tabnr: number, tabs: string[]) => void): this;
+    public on(event: 'cmdline-show', fn: (content: Cell[], pos: number, firstc: string, indent: number, level: number) => void): this;
+    public on(event: 'cmdline-pos', fn: (pos: number, level: number) => void): this;
+    public on(event: 'cmdline-hide', fn: () => void): this;
+    public on(event: 'wildmenu-show', fn: (items: string[]) => void): this;
+    public on(event: 'wildmenu-select', fn: (selected: number) => void): this;
+    public on(event: 'wildmenu-hide', fn: () => void): this;
     public on(event: string, fn: (...args: any[]) => void): this {
         this.eventEmitter.on(event, fn);
         return this;
@@ -175,9 +187,6 @@ export default class NeovimStore {
     private prependListener(event: 'clear', fn: () => void): this;
     private prependListener(event: 'cursor-goto', fn: (row: number, col: number) => void): this;
     private prependListener(event: 'scroll', fn: (top: number, bot: number, left: number, right: number, rows: number) => void): this;
-    private prependListener(event: 'popupmenu-show', fn: (items: PopupmenuItem[], select: number, row: number, col: number) => void): this;
-    private prependListener(event: 'popupmenu-select', fn: () => void): this;
-    private prependListener(event: 'popupmenu-hide', fn: () => void): this;
     private prependListener(event: string, fn: (...args: any[]) => void): this {
         this.eventEmitter.prependListener(event, fn);
         return this;

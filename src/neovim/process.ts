@@ -1,7 +1,7 @@
 import * as cp from 'child_process';
 import { remote } from 'electron';
 import { attach, Neovim, Tabpage } from 'neovim';
-import Store, { PopupmenuItem } from './store';
+import Store, { Cell, PopupmenuItem } from './store';
 
 export default class NeovimProcess {
     private nvim: Neovim;
@@ -23,6 +23,8 @@ export default class NeovimProcess {
             ext_linegrid: true,
             ext_popupmenu: true,
             ext_tabline: true,
+            ext_cmdline: true,
+            ext_wildmenu: true,
         });
         this.store.on('resize-screen', () => this.nvim.uiTryResize(this.store.size.cols, this.store.size.rows));
     }
@@ -165,6 +167,45 @@ export default class NeovimProcess {
                 curtab.number.then((tabnr: number) => {
                     this.store.emit('tabline-update', tabnr, tabs);
                 });
+                break;
+            }
+
+            case 'cmdline_show': {
+                const content: Cell[] = args[0].map((item: any[]) => {
+                    return {
+                        hlID: item[0],
+                        text: item[1],
+                    };
+                });
+                const pos: number = args[1];
+                const firstc: string = args[2] !== '' ? args[2] : args[3];
+                const indent: number = args[4];
+                const level: number = args[5];
+                this.store.emit('cmdline-show', content, pos, firstc, indent, level);
+                break;
+            }
+            case 'cmdline_pos': {
+                const pos: number = args[0];
+                const level: number = args[1];
+                this.store.emit('cmdline-pos', pos, level);
+                break;
+            }
+            case 'cmdline_hide': {
+                this.store.emit('cmdline-hide');
+                break;
+            }
+            case 'wildmenu_show': {
+                const items: string[] = args[0];
+                this.store.emit('wildmenu-show', items);
+                break;
+            }
+            case 'wildmenu_select': {
+                const selected: number = args[0];
+                this.store.emit('wildmenu-select', selected);
+                break;
+            }
+            case 'wildmenu_hide': {
+                this.store.emit('wildmenu-hide');
                 break;
             }
         }

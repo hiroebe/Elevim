@@ -2,6 +2,7 @@ import { remote } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as toml from 'toml';
+import Cmdline from './cmdline';
 import Popupmenu from './popupmenu';
 import Process from './process';
 import Screen from './screen';
@@ -22,6 +23,7 @@ export default class Neovim {
     public screen: Screen;
     public popupmenu: Popupmenu;
     public tabline: Tabline;
+    public cmdline: Cmdline;
 
     constructor() {
         this.store = new Store();
@@ -29,6 +31,7 @@ export default class Neovim {
         this.screen = new Screen(this.store);
         this.popupmenu = new Popupmenu(this.store);
         this.tabline = new Tabline(this.store);
+        this.cmdline = new Cmdline(this.store);
 
         const configPath = path.join(process.env.HOME, '.config', 'elevim', 'config.toml');
         fs.readFile(configPath, { encoding: 'utf8' }, (_, data: Buffer) => {

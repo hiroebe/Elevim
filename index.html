@@ -12,6 +12,10 @@
         width: 100%;
         height: 100%;
       }
+      div,ul {
+        margin: 0px;
+        padding: 0px;
+      }
       .vertical {
         display: flex;
         flex-direction: column;
@@ -50,6 +54,20 @@
       #tabline {
         flex: none;
       }
+      #cmdline-container {
+        position: absolute;
+        box-shadow: 3px 3px 3px 3px black;
+      }
+      #cmdline {
+        margin: 5px;
+        padding: 5px;
+      }
+      #wildmenu {
+        margin: 5px;
+        padding: 5px;
+        list-style: none;
+        overflow: scroll;
+      }
     </style>
   </head>
   <body>
@@ -61,6 +79,10 @@
         <input id="input" autocomplete="off" autofocus />
         <ul id="popupmenu"></ul>
       </div>
+    </div>
+    <div id="cmdline-container">
+      <div id="cmdline"></div>
+      <ul id="wildmenu"></ul>
     </div>
     <canvas id="hidden-screen"></canvas>
   </body>
