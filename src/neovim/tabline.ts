@@ -2,6 +2,7 @@ import { shiftColor } from '../utils';
 import Store from './store';
 
 export default class NeovimTabline {
+    private padding: number = 3;
     private element: HTMLDivElement;
 
     constructor(private readonly store: Store) {
@@ -29,6 +30,12 @@ export default class NeovimTabline {
             div.innerText = tabs[i];
             div.style.flex = 'auto';
             div.style.textAlign = 'center';
+            div.style.padding = this.padding + 'px 0px';
+
+            if (i > 0) {
+                div.style.borderLeft = '1px solid';
+                div.style.borderColor = shiftColor(hl.fg, 0.5);
+            }
 
             if (i === tabnr) {
                 div.style.color = hl.fg;
@@ -49,6 +56,6 @@ export default class NeovimTabline {
 
     private resize() {
         const ratio = window.devicePixelRatio;
-        this.element.style.height = this.store.font.height / ratio + 'px';
+        this.element.style.height = this.store.font.height / ratio + this.padding * 2 + 'px';
     }
 }

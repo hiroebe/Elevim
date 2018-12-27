@@ -15,7 +15,7 @@ export default class NeovimCmdline {
         this.cursor = document.createElement('span') as HTMLSpanElement;
         this.cursor.style.display = 'inline';
         this.cursor.style.position = 'relative';
-        this.cursor.style.border = '1px solid';
+        this.cursor.style.borderLeft = '1px solid';
 
         this.container.style.display = 'none';
         this.wildmenu.style.display = 'none';
