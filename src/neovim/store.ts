@@ -190,7 +190,6 @@ export default class NeovimStore {
         this.font.width = width;
         this.font.height = height;
 
-        // after emit?
         this.resize();
     }
 

@@ -47,11 +47,7 @@ export default class NeovimPopupmenu {
             this.element.style.top = (row - elemRows) * height / ratio + 'px';
             this.element.style.boxShadow = '3px -3px 3px 3px black';
         }
-        if (col + elemCols < this.store.size.cols || this.store.size.cols - elemCols < 0) {
-            this.element.style.left = (col - 1) * width / ratio + 'px';
-        } else {
-            this.element.style.left = (this.store.size.cols - elemCols) * width / ratio + 'px';
-        }
+        this.element.style.left = (col - 1) * width / ratio + 'px';
 
         this.element.style.font = size + 'px ' + family;
         this.element.style.lineHeight = '' + this.store.lineHeight;
