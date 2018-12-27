@@ -52,7 +52,7 @@ export interface PopupmenuItem {
     info: string;
 }
 
-export default class NeovimStore extends EventEmitter {
+export default class NeovimStore {
     public font: Font;
     public size: Size;
     public cursor: Cursor;
@@ -62,9 +62,9 @@ export default class NeovimStore extends EventEmitter {
     public hlMap: Map<number, Highlight>;
     public grid: Cell[][];
     public lineHeight: number;
+    private eventEmitter: EventEmitter;
 
     constructor() {
-        super();
         this.updateFont(16, 'monospace');
         this.size = { rows: 0, cols: 0, width: 0, height: 0 };
         this.cursor = { row: 0, col: 0 };
@@ -75,8 +75,21 @@ export default class NeovimStore extends EventEmitter {
         this.hlMap.set(0, this.newHighlight());
         this.grid = [];
         this.lineHeight = 1.2;
+        this.eventEmitter = new EventEmitter();
 
         remote.getCurrentWindow().on('resize', this.resize.bind(this));
+
+        this.prependListener('nvim-resize', this.onNvimResize.bind(this))
+            .prependListener('update-specified-font', this.onUpdateSpecifiedFont.bind(this))
+            .prependListener('update-font-size', this.onUpdateFontSize.bind(this))
+            .prependListener('mode-info-set', this.onModeInfoSet.bind(this))
+            .prependListener('mode-change', this.onModeChange.bind(this))
+            .prependListener('default-colors-set', this.onDefaultColorsSet.bind(this))
+            .prependListener('highlight-set', this.onHighlightSet.bind(this))
+            .prependListener('set-chars', this.onSetChars.bind(this))
+            .prependListener('clear', this.onClear.bind(this))
+            .prependListener('cursor-goto', this.onCursorGoto.bind(this))
+            .prependListener('scroll', this.onScroll.bind(this));
     }
 
     public getFontStyle(hl: Highlight): string {
@@ -93,107 +106,109 @@ export default class NeovimStore extends EventEmitter {
         return attrs + size * ratio + 'px ' + family;
     }
 
-    public emitResizeScreen() {
-        this.emit('resize-screen');
+    public emit(event: 'resize-screen'): boolean;
+    public emit(event: 'nvim-resize', rows: number, cols: number): boolean;
+    public emit(event: 'update-specified-font', size: number, family: string, lineHeight: number): boolean;
+    public emit(event: 'update-font-size', width: number, height: number): boolean;
+    public emit(event: 'input', key: string): boolean;
+    public emit(event: 'mode-info-set', modeInfoList: ModeInfo[]): boolean;
+    public emit(event: 'mode-change', mode: string, modeIdx: number): boolean;
+    public emit(event: 'busy-start'): boolean;
+    public emit(event: 'busy-stop'): boolean;
+    public emit(event: 'flush'): boolean;
+    public emit(event: 'default-colors-set', fg: number, bg: number, sp: number): boolean;
+    public emit(event: 'highlight-set', id: number, attrs: any): boolean;
+    public emit(event: 'set-chars', row: number, colStart: number, cells: any[][]): boolean;
+    public emit(event: 'clear'): boolean;
+    public emit(event: 'cursor-goto', row: number, col: number): boolean;
+    public emit(event: 'scroll', top: number, bot: number, left: number, right: number, rows: number): boolean;
+    public emit(event: 'popupmenu-show', items: PopupmenuItem[], select: number, row: number, col: number): boolean;
+    public emit(event: 'popupmenu-select', select: number): boolean;
+    public emit(event: 'popupmenu-hide'): boolean;
+    public emit(event: string, ...args: any[]): boolean {
+        return this.eventEmitter.emit(event, ...args);
     }
 
-    public onResizeScreen(fn: () => void) {
-        this.on('resize-screen', fn);
+    public on(event: 'resize-screen', fn: () => void): this;
+    public on(event: 'nvim-resize', fn: (rows: number, cols: number) => void): this;
+    public on(event: 'update-specified-font', fn: (size: number, family: string, lineHeight: number) => void): this;
+    public on(event: 'update-font-size', fn: (width: number, height: number) => void): this;
+    public on(event: 'input', fn: (key: string) => void): this;
+    public on(event: 'mode-info-set', fn: (modeInfoList: ModeInfo[]) => void): this;
+    public on(event: 'mode-change', fn: (mode: string, modeIdx: number) => void): this;
+    public on(event: 'busy-start', fn: () => void): this;
+    public on(event: 'busy-stop', fn: () => void): this;
+    public on(event: 'flush', fn: () => void): this;
+    public on(event: 'default-colors-set', fn: (fg: number, bg: number, sp: number) => void): this;
+    public on(event: 'highlight-set', fn: (id: number, attrs: any) => void): this;
+    public on(event: 'set-chars', fn: (row: number, colStart: number, cells: any[][]) => void): this;
+    public on(event: 'clear', fn: () => void): this;
+    public on(event: 'cursor-goto', fn: (row: number, col: number) => void): this;
+    public on(event: 'scroll', fn: (top: number, bot: number, left: number, right: number, rows: number) => void): this;
+    public on(event: 'popupmenu-show', fn: (items: PopupmenuItem[], select: number, row: number, col: number) => void): this;
+    public on(event: 'popupmenu-select', fn: (selected: number) => void): this;
+    public on(event: 'popupmenu-hide', fn: () => void): this;
+    public on(event: string, fn: (...args: any[]) => void): this {
+        this.eventEmitter.on(event, fn);
+        return this;
     }
 
-    public emitNvimResize(rows: number, cols: number) {
+    private prependListener(event: 'resize-screen', fn: () => void): this;
+    private prependListener(event: 'nvim-resize', fn: (rows: number, cols: number) => void): this;
+    private prependListener(event: 'update-specified-font', fn: (size: number, family: string, lineHeight: number) => void): this;
+    private prependListener(event: 'update-font-size', fn: (width: number, height: number) => void): this;
+    private prependListener(event: 'input', fn: (key: string) => void): this;
+    private prependListener(event: 'mode-info-set', fn: (modeInfoList: ModeInfo[]) => void): this;
+    private prependListener(event: 'mode-change', fn: (mode: string, modeIdx: number) => void): this;
+    private prependListener(event: 'busy-start', fn: () => void): this;
+    private prependListener(event: 'busy-stop', fn: () => void): this;
+    private prependListener(event: 'flush', fn: () => void): this;
+    private prependListener(event: 'default-colors-set', fn: (fg: number, bg: number, sp: number) => void): this;
+    private prependListener(event: 'highlight-set', fn: (id: number, attrs: any) => void): this;
+    private prependListener(event: 'set-chars', fn: (row: number, colStart: number, cells: any[][]) => void): this;
+    private prependListener(event: 'clear', fn: () => void): this;
+    private prependListener(event: 'cursor-goto', fn: (row: number, col: number) => void): this;
+    private prependListener(event: 'scroll', fn: (top: number, bot: number, left: number, right: number, rows: number) => void): this;
+    private prependListener(event: 'popupmenu-show', fn: (items: PopupmenuItem[], select: number, row: number, col: number) => void): this;
+    private prependListener(event: 'popupmenu-select', fn: () => void): this;
+    private prependListener(event: 'popupmenu-hide', fn: () => void): this;
+    private prependListener(event: string, fn: (...args: any[]) => void): this {
+        this.eventEmitter.prependListener(event, fn);
+        return this;
+    }
+
+    private onNvimResize(rows: number, cols: number) {
         this.updateGrid(rows, cols);
-        this.emit('nvim-resize', rows, cols);
     }
 
-    public onNvimResize(fn: (rows: number, cols: number) => void) {
-        this.on('nvim-resize', fn);
-    }
-
-    public emitUpdateSpecifiedFont(fontSize: number, fontFamily: string, lineHeight: number) {
+    private onUpdateSpecifiedFont(fontSize: number, fontFamily: string, lineHeight: number) {
         this.updateFont(fontSize || this.font.size, fontFamily || this.font.family);
         this.lineHeight = lineHeight || this.lineHeight;
-        this.emit('update-font-string');
     }
 
-    public onUpdateSpecifiedFont(fn: () => void) {
-        this.on('update-font-string', fn);
-    }
-
-    public emitUpdateFontSize(width: number, height: number) {
+    private onUpdateFontSize(width: number, height: number) {
         this.font.width = width;
         this.font.height = height;
-        this.emit('update-font-size');
 
+        // after emit?
         this.resize();
     }
 
-    public onUpdateFontSize(fn: () => void) {
-        this.on('update-font-size', fn);
-    }
-
-    public emitInput(key: string) {
-        this.emit('input', key);
-    }
-
-    public onInput(fn: (key: string) => void) {
-        this.on('input', fn);
-    }
-
-    public emitModeInfoSet(modeInfoList: ModeInfo[]) {
+    private onModeInfoSet(modeInfoList: ModeInfo[]) {
         this.modeInfoList = modeInfoList;
-        this.emit('mode-info-set');
     }
 
-    public onModeInfoSet(fn: () => void) {
-        this.on('mode-info-set', fn);
-    }
-
-    public emitModeChange(mode: string, modeIdx: number) {
+    private onModeChange(mode: string, modeIdx: number) {
         this.mode = mode;
         this.modeIdx = modeIdx;
-        this.emit('mode-change');
     }
 
-    public onModeChange(fn: () => void) {
-        this.on('mode-change', fn);
-    }
-
-    public emitBusyStart() {
-        this.emit('busy-start');
-    }
-
-    public onBusyStart(fn: () => void) {
-        this.on('busy-start', fn);
-    }
-
-    public emitBusyStop() {
-        this.emit('busy-stop');
-    }
-
-    public onBusyStop(fn: () => void) {
-        this.on('busy-stop', fn);
-    }
-
-    public emitFlush() {
-        this.emit('flush');
-    }
-
-    public onFlush(fn: () => void) {
-        this.on('flush', fn);
-    }
-
-    public emitDefaultColorsSet(fg: number, bg: number, sp: number) {
+    private onDefaultColorsSet(fg: number, bg: number, sp: number) {
         const hl = this.newHighlight(fg, bg, sp);
         this.hlMap.set(0, hl);
-        this.emit('default-colors-set');
     }
 
-    public onDefaultColorsSet(fn: () => void) {
-        this.on('default-colors-set', fn);
-    }
-
-    public emitHighlightSet(id: number, attr: any) {
+    private onHighlightSet(id: number, attr: any) {
         const hl = this.newHighlight(
             attr.foreground,
             attr.background,
@@ -205,75 +220,26 @@ export default class NeovimStore extends EventEmitter {
             attr.undercurl,
         );
         this.hlMap.set(id, hl);
-        this.emit('highlight-set');
     }
 
-    public onHighlightSet(fn: () => void) {
-        this.on('highlight-set', fn);
-    }
-
-    public emitSetChars(row: number, colStart: number, cells: any[][]) {
+    private onSetChars(row: number, colStart: number, cells: any[][]) {
         this.setChars(row, colStart, cells);
-        this.emit('set-chars', row, colStart, cells);
     }
 
-    public onSetChars(fn: (row: number, colStart: number, cells: any[][]) => void) {
-        this.on('set-chars', fn);
-    }
-
-    public emitClear() {
+    private onClear() {
         for (const line of this.grid) {
             for (let i = 0; i < line.length; i++) {
                 line[i] = { text: '', hlID: 0 };
             }
         }
-        this.emit('clear');
     }
 
-    public onClear(fn: () => void) {
-        this.on('clear', fn);
-    }
-
-    public emitCursorGoto(row: number, col: number) {
+    private onCursorGoto(row: number, col: number) {
         this.cursor = { row, col };
-        this.emit('cursor-goto');
     }
 
-    public onCursorGoto(fn: () => void) {
-        this.on('cursor-goto', fn);
-    }
-
-    public emitScroll(top: number, bot: number, left: number, right: number, rows: number) {
+    private onScroll(top: number, bot: number, left: number, right: number, rows: number) {
         this.scroll(top, bot, left, right, rows);
-        this.emit('scroll', top, bot, left, right, rows);
-    }
-
-    public onScroll(fn: (top: number, bot: number, left: number, right: number, rows: number) => void) {
-        this.on('scroll', fn);
-    }
-
-    public emitPopupmenuShow(items: PopupmenuItem[], selected: number, row: number, col: number) {
-        this.emit('popupmenu-show', items, selected, row, col);
-    }
-
-    public onPopupmenuShow(fn: (items: PopupmenuItem[], selected: number, row: number, col: number) => void) {
-        this.on('popupmenu-show', fn);
-    }
-
-    public emitPopupmenuSelect(selected: number) {
-        this.emit('popupmenu-select', selected);
-    }
-
-    public onPopupmenuSelect(fn: (selected: number) => void) {
-        this.on('popupmenu-select', fn);
-    }
-
-    public emitPopupmenuHide() {
-        this.emit('popupmenu-hide');
-    }
-
-    public onPopupmenuHide(fn: () => void) {
-        this.on('popupmenu-hide', fn);
     }
 
     private updateFont(size: number, family: string) {
@@ -375,7 +341,7 @@ export default class NeovimStore extends EventEmitter {
             height,
         };
         if (rows !== rowsBefore || cols !== colsBefore) {
-            this.emitResizeScreen();
+            this.emit('resize-screen');
         }
     }
 }

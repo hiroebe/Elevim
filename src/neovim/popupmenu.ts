@@ -6,9 +6,10 @@ export default class NeovimPopupmenu {
     constructor(private readonly store: Store) {
         this.element = document.getElementById('popupmenu') as HTMLUListElement;
 
-        store.onPopupmenuShow(this.show.bind(this));
-        store.onPopupmenuSelect(this.select.bind(this));
-        store.onPopupmenuHide(this.hide.bind(this));
+        store
+            .on('popupmenu-show', this.show.bind(this))
+            .on('popupmenu-select', this.select.bind(this))
+            .on('popupmenu-hide', this.hide.bind(this));
     }
 
     private show(items: PopupmenuItem[], selected: number, row: number, col: number) {

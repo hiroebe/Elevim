@@ -29,7 +29,7 @@ export default class Input {
         this.element.addEventListener('keydown', this.onKeydownEvent.bind(this));
         this.element.addEventListener('input', this.onInputEvent.bind(this));
 
-        store.onCursorGoto(this.updateElementPos.bind(this));
+        store.on('cursor-goto', this.updateElementPos.bind(this));
     }
 
     public focus() {
@@ -109,7 +109,7 @@ export default class Input {
 
     private inputToNvim(key: string, event: Event) {
         event.preventDefault();
-        this.store.emitInput(key);
+        this.store.emit('input', key);
         const target = event.target as HTMLInputElement;
         target.value = '';
     }

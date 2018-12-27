@@ -40,13 +40,14 @@ export default class NeovimScreen {
 
         this.canvas.addEventListener('click', () => this.input.focus());
 
-        store.onResizeScreen(this.resize.bind(this));
-        store.onUpdateSpecifiedFont(this.measureFont.bind(this));
-        store.onDefaultColorsSet(this.clear.bind(this));
-        store.onSetChars(this.draw.bind(this));
-        store.onClear(this.clear.bind(this));
-        store.onScroll(this.scheduleScroll.bind(this));
-        store.onFlush(this.flush.bind(this));
+        store
+            .on('resize-screen', this.resize.bind(this))
+            .on('update-specified-font', this.measureFont.bind(this))
+            .on('default-colors-set', this.clear.bind(this))
+            .on('set-chars', this.draw.bind(this))
+            .on('clear', this.clear.bind(this))
+            .on('scroll', this.scheduleScroll.bind(this))
+            .on('flush', this.flush.bind(this));
     }
 
     private updateModifiedRect(newTop: number, newBot: number, newLeft: number, newRight: number) {
@@ -259,6 +260,6 @@ export default class NeovimScreen {
         this.hiddenCtx.font = size * ratio + 'px ' + family;
         const width = this.hiddenCtx.measureText('A').width;
         const height = Math.floor(width * 2 * this.store.lineHeight);
-        this.store.emitUpdateFontSize(width, height);
+        this.store.emit('update-font-size', width, height);
     }
 }

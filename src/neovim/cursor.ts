@@ -16,10 +16,11 @@ export default class Cursor {
             this.renderTimer = null;
         };
 
-        store.onUpdateFontSize(this.resize.bind(this));
-        store.onFlush(this.scheduleRender.bind(this));
-        store.onBusyStart(this.hide.bind(this));
-        store.onBusyStop(this.show.bind(this));
+        store
+            .on('update-font-size', this.resize.bind(this))
+            .on('flush', this.scheduleRender.bind(this))
+            .on('busy-start', this.hide.bind(this))
+            .on('busy-stop', this.show.bind(this));
     }
 
     private show() {

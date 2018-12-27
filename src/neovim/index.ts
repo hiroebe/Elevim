@@ -31,7 +31,7 @@ export default class Neovim {
         fs.readFile(configPath, { encoding: 'utf8' }, (_, data: Buffer) => {
             const config: IConfig = toml.parse(data.toString());
             remote.getCurrentWindow().setSize(config.width, config.height);
-            this.store.emitUpdateSpecifiedFont(config.font_size, config.font_family, config.line_height);
+            this.store.emit('update-specified-font', config.font_size, config.font_family, config.line_height);
             this.process.attach();
         });
     }

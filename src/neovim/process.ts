@@ -13,7 +13,7 @@ export default class NeovimProcess {
         this.nvim.on('notification', this.onNotified.bind(this));
         this.nvim.on('disconnect', this.onDisconnected.bind(this));
 
-        store.onInput((key: string) => this.nvim.input(key));
+        store.on('input', (key: string) => this.nvim.input(key));
     }
 
     public attach() {
@@ -23,7 +23,7 @@ export default class NeovimProcess {
             ext_linegrid: true,
             ext_popupmenu: true,
         });
-        this.store.onResizeScreen(() => this.nvim.uiTryResize(this.store.size.cols, this.store.size.rows));
+        this.store.on('resize-screen', () => this.nvim.uiTryResize(this.store.size.cols, this.store.size.rows));
     }
 
     private onNotified(method: string, events: any[]) {
@@ -60,25 +60,25 @@ export default class NeovimProcess {
                         attrID: info.attr_id || 0,
                     };
                 });
-                this.store.emitModeInfoSet(modeInfoList);
+                this.store.emit('mode-info-set', modeInfoList);
                 break;
             }
             case 'mode_change': {
                 const mode = args[0];
                 const modeIdx = args[1];
-                this.store.emitModeChange(mode, modeIdx);
+                this.store.emit('mode-change', mode, modeIdx);
                 break;
             }
             case 'busy_start': {
-                this.store.emitBusyStart();
+                this.store.emit('busy-start');
                 break;
             }
             case 'busy_stop': {
-                this.store.emitBusyStop();
+                this.store.emit('busy-stop');
                 break;
             }
             case 'flush': {
-                this.store.emitFlush();
+                this.store.emit('flush');
                 break;
             }
 
@@ -86,20 +86,20 @@ export default class NeovimProcess {
                 // const grid: number = args[0];
                 const cols: number = args[1];
                 const rows: number = args[2];
-                this.store.emitNvimResize(rows, cols);
+                this.store.emit('nvim-resize', rows, cols);
                 break;
             }
             case 'default_colors_set': {
                 const fg: number = args[0];
                 const bg: number = args[1];
                 const sp: number = args[2];
-                this.store.emitDefaultColorsSet(fg, bg, sp);
+                this.store.emit('default-colors-set', fg, bg, sp);
                 break;
             }
             case 'hl_attr_define': {
                 const id: number = args[0];
                 const attr = args[1];
-                this.store.emitHighlightSet(id, attr);
+                this.store.emit('highlight-set', id, attr);
                 break;
             }
             case 'grid_line': {
@@ -107,18 +107,18 @@ export default class NeovimProcess {
                 const row: number = args[1];
                 const colStart: number = args[2];
                 const cells: any[][] = args[3];
-                this.store.emitSetChars(row, colStart, cells);
+                this.store.emit('set-chars', row, colStart, cells);
                 break;
             }
             case 'grid_clear': {
-                this.store.emitClear();
+                this.store.emit('clear');
                 break;
             }
             case 'grid_cursor_goto': {
                 // const grid: number = args[0];
                 const row: number = args[1];
                 const col: number = args[2];
-                this.store.emitCursorGoto(row, col);
+                this.store.emit('cursor-goto', row, col);
                 break;
             }
             case 'grid_scroll': {
@@ -129,7 +129,7 @@ export default class NeovimProcess {
                 const right: number = args[4];
                 const rows: number = args[5];
                 // const cols: number = args[6];
-                this.store.emitScroll(top, bot, left, right, rows);
+                this.store.emit('scroll', top, bot, left, right, rows);
                 break;
             }
 
@@ -145,16 +145,16 @@ export default class NeovimProcess {
                 const selected: number = args[1];
                 const row: number = args[2];
                 const col: number = args[3];
-                this.store.emitPopupmenuShow(items, selected, row, col);
+                this.store.emit('popupmenu-show', items, selected, row, col);
                 break;
             }
             case 'popupmenu_select': {
                 const selected: number = args[0];
-                this.store.emitPopupmenuSelect(selected);
+                this.store.emit('popupmenu-select', selected);
                 break;
             }
             case 'popupmenu_hide': {
-                this.store.emitPopupmenuHide();
+                this.store.emit('popupmenu-hide');
                 break;
             }
         }
