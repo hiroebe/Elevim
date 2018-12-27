@@ -125,8 +125,13 @@ export default class NeovimStore {
     public emit(event: 'popupmenu-show', items: PopupmenuItem[], select: number, row: number, col: number): boolean;
     public emit(event: 'popupmenu-select', select: number): boolean;
     public emit(event: 'popupmenu-hide'): boolean;
+    public emit(event: 'tabline-update', tabnr: number, tabs: string[]): boolean;
     public emit(event: string, ...args: any[]): boolean {
-        return this.eventEmitter.emit(event, ...args);
+        const ret = this.eventEmitter.emit(event, ...args);
+        if (event === 'update-font-size') {
+            this.resize();
+        }
+        return ret;
     }
 
     public on(event: 'resize-screen', fn: () => void): this;
@@ -148,6 +153,7 @@ export default class NeovimStore {
     public on(event: 'popupmenu-show', fn: (items: PopupmenuItem[], select: number, row: number, col: number) => void): this;
     public on(event: 'popupmenu-select', fn: (selected: number) => void): this;
     public on(event: 'popupmenu-hide', fn: () => void): this;
+    public on(event: 'tabline-update', fn: (tabnr: number, tabs: string[]) => void): this;
     public on(event: string, fn: (...args: any[]) => void): this {
         this.eventEmitter.on(event, fn);
         return this;
@@ -189,8 +195,6 @@ export default class NeovimStore {
     private onUpdateFontSize(width: number, height: number) {
         this.font.width = width;
         this.font.height = height;
-
-        this.resize();
     }
 
     private onModeInfoSet(modeInfoList: ModeInfo[]) {

@@ -6,6 +6,7 @@ import Popupmenu from './popupmenu';
 import Process from './process';
 import Screen from './screen';
 import Store from './store';
+import Tabline from './tabline';
 
 interface IConfig {
     width: number;
@@ -20,12 +21,14 @@ export default class Neovim {
     public process: Process;
     public screen: Screen;
     public popupmenu: Popupmenu;
+    public tabline: Tabline;
 
     constructor() {
         this.store = new Store();
         this.process = new Process(this.store);
         this.screen = new Screen(this.store);
         this.popupmenu = new Popupmenu(this.store);
+        this.tabline = new Tabline(this.store);
 
         const configPath = path.join(process.env.HOME, '.config', 'elevim', 'config.toml');
         fs.readFile(configPath, { encoding: 'utf8' }, (_, data: Buffer) => {

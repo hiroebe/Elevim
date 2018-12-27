@@ -1,6 +1,6 @@
 import * as cp from 'child_process';
 import { remote } from 'electron';
-import { attach, Neovim } from 'neovim';
+import { attach, Neovim, Tabpage } from 'neovim';
 import Store, { PopupmenuItem } from './store';
 
 export default class NeovimProcess {
@@ -22,6 +22,7 @@ export default class NeovimProcess {
             // @ts-ignore
             ext_linegrid: true,
             ext_popupmenu: true,
+            ext_tabline: true,
         });
         this.store.on('resize-screen', () => this.nvim.uiTryResize(this.store.size.cols, this.store.size.rows));
     }
@@ -155,6 +156,15 @@ export default class NeovimProcess {
             }
             case 'popupmenu_hide': {
                 this.store.emit('popupmenu-hide');
+                break;
+            }
+
+            case 'tabline_update': {
+                const curtab: Tabpage = args[0];
+                const tabs: string[] = args[1].map((dict: any) => dict.name);
+                curtab.number.then((tabnr: number) => {
+                    this.store.emit('tabline-update', tabnr, tabs);
+                });
                 break;
             }
         }
