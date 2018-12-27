@@ -1,7 +1,7 @@
 import * as cp from 'child_process';
 import { remote } from 'electron';
 import { attach, Neovim } from 'neovim';
-import Store from './store';
+import Store, { IPopupmenuItem } from './store';
 
 export default class NeovimProcess {
     private nvim: Neovim;
@@ -21,6 +21,7 @@ export default class NeovimProcess {
         this.nvim.uiAttach(cols, rows, {
             // @ts-ignore
             ext_linegrid: true,
+            ext_popupmenu: true,
         });
         this.store.onResizeScreen(() => this.nvim.uiTryResize(this.store.size.cols, this.store.size.rows));
     }
@@ -129,6 +130,31 @@ export default class NeovimProcess {
                 const rows: number = args[5];
                 // const cols: number = args[6];
                 this.store.emitScroll(top, bot, left, right, rows);
+                break;
+            }
+
+            case 'popupmenu_show': {
+                const items: IPopupmenuItem[] = args[0].map((item: any[]) => {
+                    return {
+                        word: item[0],
+                        kind: item[1],
+                        menu: item[2],
+                        info: item[3],
+                    };
+                });
+                const selected: number = args[1];
+                const row: number = args[2];
+                const col: number = args[3];
+                this.store.emitPopupmenuShow(items, selected, row, col);
+                break;
+            }
+            case 'popupmenu_select': {
+                const selected: number = args[0];
+                this.store.emitPopupmenuSelect(selected);
+                break;
+            }
+            case 'popupmenu_hide': {
+                this.store.emitPopupmenuHide();
                 break;
             }
         }

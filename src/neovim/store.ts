@@ -29,7 +29,7 @@ interface IModeInfo {
     attrID: number;
 }
 
-export interface IHighlight {
+interface IHighlight {
     fg: string;
     bg: string;
     sp: string;
@@ -43,6 +43,13 @@ export interface IHighlight {
 interface ICell {
     text: string;
     hlID: number;
+}
+
+export interface IPopupmenuItem {
+    word: string;
+    kind: string;
+    menu: string;
+    info: string;
 }
 
 export default class NeovimStore extends EventEmitter {
@@ -243,6 +250,30 @@ export default class NeovimStore extends EventEmitter {
 
     public onScroll(fn: (top: number, bot: number, left: number, right: number, rows: number) => void) {
         this.on('scroll', fn);
+    }
+
+    public emitPopupmenuShow(items: IPopupmenuItem[], selected: number, row: number, col: number) {
+        this.emit('popupmenu-show', items, selected, row, col);
+    }
+
+    public onPopupmenuShow(fn: (items: IPopupmenuItem[], selected: number, row: number, col: number) => void) {
+        this.on('popupmenu-show', fn);
+    }
+
+    public emitPopupmenuSelect(selected: number) {
+        this.emit('popupmenu-select', selected);
+    }
+
+    public onPopupmenuSelect(fn: (selected: number) => void) {
+        this.on('popupmenu-select', fn);
+    }
+
+    public emitPopupmenuHide() {
+        this.emit('popupmenu-hide');
+    }
+
+    public onPopupmenuHide(fn: () => void) {
+        this.on('popupmenu-hide', fn);
     }
 
     private updateFont(size: number, family: string) {

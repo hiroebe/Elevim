@@ -1,7 +1,6 @@
 import wcwidth = require('wcwidth');
 import Cursor from './cursor';
 import Input from './input';
-import { IHighlight } from './store';
 import Store from './store';
 
 interface IRect {
