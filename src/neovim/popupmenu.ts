@@ -1,4 +1,4 @@
-import Store, { IPopupmenuItem } from './store';
+import Store, { PopupmenuItem } from './store';
 
 export default class NeovimPopupmenu {
     private element: HTMLUListElement;
@@ -11,7 +11,7 @@ export default class NeovimPopupmenu {
         store.onPopupmenuHide(this.hide.bind(this));
     }
 
-    private show(items: IPopupmenuItem[], selected: number, row: number, col: number) {
+    private show(items: PopupmenuItem[], selected: number, row: number, col: number) {
         while (this.element.firstChild) {
             this.element.removeChild(this.element.firstChild);
         }
@@ -94,7 +94,7 @@ export default class NeovimPopupmenu {
         this.element.style.display = 'none';
     }
 
-    private calcItemsWidth(items: IPopupmenuItem[]): [number, number, number] {
+    private calcItemsWidth(items: PopupmenuItem[]): [number, number, number] {
         let wordWidth = 0;
         let kindWidth = 0;
         let menuWidth = 0;
@@ -112,7 +112,7 @@ export default class NeovimPopupmenu {
         return [wordWidth, kindWidth, menuWidth];
     }
 
-    private formatItem(item: IPopupmenuItem, itemsWidth: [number, number, number]): string {
+    private formatItem(item: PopupmenuItem, itemsWidth: [number, number, number]): string {
         const [wordWidth, kindWidth, menuWidth] = itemsWidth;
         let text = item.word;
         for (let i = item.word.length; i < wordWidth; i++) {

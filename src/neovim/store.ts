@@ -2,26 +2,26 @@ import { remote } from 'electron';
 import { EventEmitter } from 'events';
 import { colorToHexString } from '../utils';
 
-interface IFont {
+interface Font {
     family: string;
     size: number;
     width: number;
     height: number;
 }
 
-interface ISize {
+interface Size {
     rows: number;
     cols: number;
     width: number;
     height: number;
 }
 
-interface ICursor {
+interface Cursor {
     row: number;
     col: number;
 }
 
-interface IModeInfo {
+interface ModeInfo {
     name: string;
     shortName: string;
     cursorShape: 'block' | 'horizontal' | 'vertical';
@@ -29,7 +29,7 @@ interface IModeInfo {
     attrID: number;
 }
 
-interface IHighlight {
+interface Highlight {
     fg: string;
     bg: string;
     sp: string;
@@ -40,12 +40,12 @@ interface IHighlight {
     undercurl: boolean;
 }
 
-interface ICell {
+interface Cell {
     text: string;
     hlID: number;
 }
 
-export interface IPopupmenuItem {
+export interface PopupmenuItem {
     word: string;
     kind: string;
     menu: string;
@@ -53,14 +53,14 @@ export interface IPopupmenuItem {
 }
 
 export default class NeovimStore extends EventEmitter {
-    public font: IFont;
-    public size: ISize;
-    public cursor: ICursor;
+    public font: Font;
+    public size: Size;
+    public cursor: Cursor;
     public mode: string;
     public modeIdx: number;
-    public modeInfoList: IModeInfo[];
-    public hlMap: Map<number, IHighlight>;
-    public grid: ICell[][];
+    public modeInfoList: ModeInfo[];
+    public hlMap: Map<number, Highlight>;
+    public grid: Cell[][];
     public lineHeight: number;
 
     constructor() {
@@ -79,7 +79,7 @@ export default class NeovimStore extends EventEmitter {
         remote.getCurrentWindow().on('resize', this.resize.bind(this));
     }
 
-    public getFontStyle(hl: IHighlight): string {
+    public getFontStyle(hl: Highlight): string {
         const ratio = window.devicePixelRatio;
         const { size, family } = this.font;
 
@@ -140,7 +140,7 @@ export default class NeovimStore extends EventEmitter {
         this.on('input', fn);
     }
 
-    public emitModeInfoSet(modeInfoList: IModeInfo[]) {
+    public emitModeInfoSet(modeInfoList: ModeInfo[]) {
         this.modeInfoList = modeInfoList;
         this.emit('mode-info-set');
     }
@@ -252,11 +252,11 @@ export default class NeovimStore extends EventEmitter {
         this.on('scroll', fn);
     }
 
-    public emitPopupmenuShow(items: IPopupmenuItem[], selected: number, row: number, col: number) {
+    public emitPopupmenuShow(items: PopupmenuItem[], selected: number, row: number, col: number) {
         this.emit('popupmenu-show', items, selected, row, col);
     }
 
-    public onPopupmenuShow(fn: (items: IPopupmenuItem[], selected: number, row: number, col: number) => void) {
+    public onPopupmenuShow(fn: (items: PopupmenuItem[], selected: number, row: number, col: number) => void) {
         this.on('popupmenu-show', fn);
     }
 
@@ -305,7 +305,7 @@ export default class NeovimStore extends EventEmitter {
         bold: boolean = false,
         underline: boolean = false,
         undercurl: boolean = false,
-    ): IHighlight {
+    ): Highlight {
         const fgString = fg === -1 ? null : colorToHexString(fg);
         const bgString = bg === -1 ? null : colorToHexString(bg);
         const spString = sp === -1 ? null : colorToHexString(sp);

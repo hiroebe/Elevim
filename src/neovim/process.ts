@@ -1,7 +1,7 @@
 import * as cp from 'child_process';
 import { remote } from 'electron';
 import { attach, Neovim } from 'neovim';
-import Store, { IPopupmenuItem } from './store';
+import Store, { PopupmenuItem } from './store';
 
 export default class NeovimProcess {
     private nvim: Neovim;
@@ -134,7 +134,7 @@ export default class NeovimProcess {
             }
 
             case 'popupmenu_show': {
-                const items: IPopupmenuItem[] = args[0].map((item: any[]) => {
+                const items: PopupmenuItem[] = args[0].map((item: any[]) => {
                     return {
                         word: item[0],
                         kind: item[1],
