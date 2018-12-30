@@ -4,12 +4,15 @@ import Store, { Cell } from './store';
 export default class NeovimCmdline {
     private container: HTMLDivElement;
     private cmdline: HTMLDivElement;
+    private header: HTMLDivElement;
     private wildmenu: HTMLUListElement;
     private cursor: HTMLSpanElement;
+    private manualMode: boolean;
 
     constructor(private readonly store: Store) {
         this.container = document.getElementById('cmdline-container') as HTMLDivElement;
         this.cmdline = document.getElementById('cmdline') as HTMLDivElement;
+        this.header = document.getElementById('wildmenu-header') as HTMLDivElement;
         this.wildmenu = document.getElementById('wildmenu') as HTMLUListElement;
 
         this.cursor = document.createElement('span') as HTMLSpanElement;
@@ -20,6 +23,8 @@ export default class NeovimCmdline {
         this.container.style.display = 'none';
         this.wildmenu.style.display = 'none';
 
+        this.manualMode = false;
+
         store
             .on('cmdline-show', this.show.bind(this))
             .on('cmdline-pos', this.setpos.bind(this))
@@ -29,7 +34,9 @@ export default class NeovimCmdline {
             .on('wildmenu-hide', this.wmHide.bind(this))
             .on('resize-screen', this.resize.bind(this))
             .on('update-specified-font', this.setFont.bind(this))
-            .on('default-colors-set', this.setColor.bind(this));
+            .on('default-colors-set', this.setColor.bind(this))
+            .on('finder-show', () => this.manualMode = true)
+            .on('finder-hide', () => this.manualMode = false);
     }
 
     private show(content: Cell[], pos: number, firstc: string, indent: number, level: number) {
@@ -63,10 +70,20 @@ export default class NeovimCmdline {
     }
 
     private hide() {
-        this.container.style.display = 'none';
+        if (!this.manualMode) {
+            this.container.style.display = 'none';
+        }
     }
 
-    private wmShow(items: string[]) {
+    private wmShow(items: string[], header: string = '') {
+        if (header === '') {
+            this.header.style.display = 'none';
+        } else {
+            const hl = this.store.hlMap.get(0);
+            this.header.innerText = header;
+            this.header.style.color = shiftColor(hl.fg, 0.5);
+            this.header.style.display = 'block';
+        }
         while (this.wildmenu.firstChild) {
             this.wildmenu.removeChild(this.wildmenu.firstChild);
         }
@@ -92,7 +109,11 @@ export default class NeovimCmdline {
             li.scrollIntoViewIfNeeded(false);
         }
 
-        const beforeLi = selected === -1
+        if (this.wildmenu.children.length === 1) {
+            return;
+        }
+
+        const beforeLi = selected <= 0
             ? this.wildmenu.lastChild as HTMLLIElement
             : this.wildmenu.children[selected - 1] as HTMLLIElement;
         if (beforeLi) {
@@ -100,7 +121,9 @@ export default class NeovimCmdline {
             beforeLi.style.backgroundColor = hl.bg;
         }
 
-        const afterLi = this.wildmenu.children[selected + 1] as HTMLLIElement;
+        const afterLi = selected === this.wildmenu.children.length - 1
+            ? this.wildmenu.firstChild as HTMLLIElement
+            : this.wildmenu.children[selected + 1] as HTMLLIElement;
         if (afterLi) {
             afterLi.style.color = hl.fg;
             afterLi.style.backgroundColor = hl.bg;
@@ -108,7 +131,10 @@ export default class NeovimCmdline {
     }
 
     private wmHide() {
-        this.wildmenu.style.display = 'none';
+        if (!this.manualMode) {
+            this.header.style.display = 'none';
+            this.wildmenu.style.display = 'none';
+        }
     }
 
     private resize() {

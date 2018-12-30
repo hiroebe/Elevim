@@ -52,6 +52,11 @@ export interface PopupmenuItem {
     info: string;
 }
 
+export enum Inputter {
+    nvim,
+    finder,
+}
+
 export default class NeovimStore {
     public font: Font;
     public size: Size;
@@ -63,6 +68,7 @@ export default class NeovimStore {
     public grid: Cell[][];
     public lineHeight: number;
     private eventEmitter: EventEmitter;
+    private inputDirection: Inputter;
 
     constructor() {
         this.updateFont(16, 'monospace');
@@ -76,6 +82,7 @@ export default class NeovimStore {
         this.grid = [];
         this.lineHeight = 1.2;
         this.eventEmitter = new EventEmitter();
+        this.inputDirection = Inputter.nvim;
 
         remote.getCurrentWindow().on('resize', this.resize.bind(this));
 
@@ -89,7 +96,9 @@ export default class NeovimStore {
             .prependListener('set-chars', this.onSetChars.bind(this))
             .prependListener('clear', this.onClear.bind(this))
             .prependListener('cursor-goto', this.onCursorGoto.bind(this))
-            .prependListener('scroll', this.onScroll.bind(this));
+            .prependListener('scroll', this.onScroll.bind(this))
+            .prependListener('finder-show', () => this.inputDirection = Inputter.finder)
+            .prependListener('finder-hide', () => this.inputDirection = Inputter.nvim);
     }
 
     public getFontStyle(hl: Highlight): string {
@@ -106,11 +115,15 @@ export default class NeovimStore {
         return attrs + size * ratio + 'px ' + family;
     }
 
+    public inputKey(key: string) {
+        this.emit('input', this.inputDirection, key);
+    }
+
     public emit(event: 'resize-screen'): boolean;
     public emit(event: 'nvim-resize', rows: number, cols: number): boolean;
     public emit(event: 'update-specified-font', size: number, family: string, lineHeight: number): boolean;
     public emit(event: 'update-font-size', width: number, height: number): boolean;
-    public emit(event: 'input', key: string): boolean;
+    public emit(event: 'input', to: Inputter, key: string): boolean;
     public emit(event: 'mode-info-set', modeInfoList: ModeInfo[]): boolean;
     public emit(event: 'mode-change', mode: string, modeIdx: number): boolean;
     public emit(event: 'busy-start'): boolean;
@@ -129,9 +142,11 @@ export default class NeovimStore {
     public emit(event: 'cmdline-show', content: Cell[], pos: number, firstc: string, indent: number, level: number): boolean;
     public emit(event: 'cmdline-pos', pos: number, level: number): boolean;
     public emit(event: 'cmdline-hide'): boolean;
-    public emit(event: 'wildmenu-show', items: string[]): boolean;
+    public emit(event: 'wildmenu-show', items: string[], header?: string): boolean;
     public emit(event: 'wildmenu-select', selected: number): boolean;
     public emit(event: 'wildmenu-hide'): boolean;
+    public emit(event: 'finder-show', args: string[]): boolean;
+    public emit(event: 'finder-hide'): boolean;
     public emit(event: string, ...args: any[]): boolean {
         const ret = this.eventEmitter.emit(event, ...args);
         if (event === 'update-font-size') {
@@ -144,7 +159,7 @@ export default class NeovimStore {
     public on(event: 'nvim-resize', fn: (rows: number, cols: number) => void): this;
     public on(event: 'update-specified-font', fn: (size: number, family: string, lineHeight: number) => void): this;
     public on(event: 'update-font-size', fn: (width: number, height: number) => void): this;
-    public on(event: 'input', fn: (key: string) => void): this;
+    public on(event: 'input', fn: (to: Inputter, key: string) => void): this;
     public on(event: 'mode-info-set', fn: (modeInfoList: ModeInfo[]) => void): this;
     public on(event: 'mode-change', fn: (mode: string, modeIdx: number) => void): this;
     public on(event: 'busy-start', fn: () => void): this;
@@ -163,9 +178,11 @@ export default class NeovimStore {
     public on(event: 'cmdline-show', fn: (content: Cell[], pos: number, firstc: string, indent: number, level: number) => void): this;
     public on(event: 'cmdline-pos', fn: (pos: number, level: number) => void): this;
     public on(event: 'cmdline-hide', fn: () => void): this;
-    public on(event: 'wildmenu-show', fn: (items: string[]) => void): this;
+    public on(event: 'wildmenu-show', fn: (items: string[], header?: string) => void): this;
     public on(event: 'wildmenu-select', fn: (selected: number) => void): this;
     public on(event: 'wildmenu-hide', fn: () => void): this;
+    public on(event: 'finder-show', fn: (args: string[]) => void): this;
+    public on(event: 'finder-hide', fn: () => void): this;
     public on(event: string, fn: (...args: any[]) => void): this {
         this.eventEmitter.on(event, fn);
         return this;
@@ -187,6 +204,8 @@ export default class NeovimStore {
     private prependListener(event: 'clear', fn: () => void): this;
     private prependListener(event: 'cursor-goto', fn: (row: number, col: number) => void): this;
     private prependListener(event: 'scroll', fn: (top: number, bot: number, left: number, right: number, rows: number) => void): this;
+    private prependListener(event: 'finder-show', fn: (args: string[]) => void): this;
+    private prependListener(event: 'finder-hide', fn: () => void): this;
     private prependListener(event: string, fn: (...args: any[]) => void): this {
         this.eventEmitter.prependListener(event, fn);
         return this;

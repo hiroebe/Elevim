@@ -2,12 +2,13 @@ import { remote } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as toml from 'toml';
-import Cmdline from './cmdline';
-import Popupmenu from './popupmenu';
-import Process from './process';
-import Screen from './screen';
-import Store from './store';
-import Tabline from './tabline';
+import Cmdline from './neovim/cmdline';
+import Finder from './neovim/finder';
+import Popupmenu from './neovim/popupmenu';
+import Process from './neovim/process';
+import Screen from './neovim/screen';
+import Store from './neovim/store';
+import Tabline from './neovim/tabline';
 
 interface IConfig {
     width: number;
@@ -24,6 +25,7 @@ export default class Neovim {
     public popupmenu: Popupmenu;
     public tabline: Tabline;
     public cmdline: Cmdline;
+    public finder: Finder;
 
     constructor() {
         this.store = new Store();
@@ -32,6 +34,7 @@ export default class Neovim {
         this.popupmenu = new Popupmenu(this.store);
         this.tabline = new Tabline(this.store);
         this.cmdline = new Cmdline(this.store);
+        this.finder = new Finder(this.store, this.process.getClient());
 
         const configPath = path.join(process.env.HOME, '.config', 'elevim', 'config.toml');
         fs.readFile(configPath, { encoding: 'utf8' }, (_, data: Buffer) => {

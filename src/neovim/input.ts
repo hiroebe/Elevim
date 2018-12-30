@@ -91,6 +91,9 @@ export default class Input {
             case 'Tab':
                 this.inputToNvim('<Tab>', event);
                 break;
+            case 'Escape':
+                this.inputToNvim('<Esc>', event);
+                break;
         }
     }
 
@@ -109,7 +112,7 @@ export default class Input {
 
     private inputToNvim(key: string, event: Event) {
         event.preventDefault();
-        this.store.emit('input', key);
+        this.store.inputKey(key);
         const target = event.target as HTMLInputElement;
         target.value = '';
     }

@@ -1,24 +1,37 @@
 import * as cp from 'child_process';
 import { remote } from 'electron';
 import { attach, Neovim, Tabpage } from 'neovim';
-import Store, { Cell, PopupmenuItem } from './store';
+import * as path from 'path';
+import Store, { Cell, Inputter, PopupmenuItem } from './store';
 
 export default class NeovimProcess {
-    private nvim: Neovim;
+    private client: Neovim;
 
     constructor(private readonly store: Store) {
-        const nvimProc = cp.spawn('nvim', ['--embed'], {});
-        this.nvim = attach({ proc: nvimProc });
+        const rtp = path.join(__dirname, '..', '..', 'runtime');
+        const argv: string[] = remote.process.argv.slice(2);
+        argv.unshift(
+            '--embed',
+            '--cmd', 'let g:loaded_elevim=1',
+            '--cmd', 'set rtp+=' + rtp,
+        );
+        const nvimProc = cp.spawn('nvim', argv, {});
+        this.client = attach({ proc: nvimProc });
 
-        this.nvim.on('notification', this.onNotified.bind(this));
-        this.nvim.on('disconnect', this.onDisconnected.bind(this));
+        this.client.on('notification', this.onNotified.bind(this));
+        this.client.on('disconnect', this.onDisconnected.bind(this));
+        this.client.subscribe('ElevimFinder');
 
-        store.on('input', (key: string) => this.nvim.input(key));
+        store.on('input', (to: Inputter, key: string) => {
+            if (to === Inputter.nvim) {
+                this.client.input(key);
+            }
+        });
     }
 
     public attach() {
         const { rows, cols } = this.store.size;
-        this.nvim.uiAttach(cols, rows, {
+        this.client.uiAttach(cols, rows, {
             // @ts-ignore
             ext_linegrid: true,
             ext_popupmenu: true,
@@ -26,7 +39,11 @@ export default class NeovimProcess {
             ext_cmdline: true,
             ext_wildmenu: true,
         });
-        this.store.on('resize-screen', () => this.nvim.uiTryResize(this.store.size.cols, this.store.size.rows));
+        this.store.on('resize-screen', () => this.client.uiTryResize(this.store.size.cols, this.store.size.rows));
+    }
+
+    public getClient(): Neovim {
+        return this.client;
     }
 
     private onNotified(method: string, events: any[]) {
@@ -38,6 +55,8 @@ export default class NeovimProcess {
                     this.redraw(name, args);
                 }
             }
+        } else if (method === 'ElevimFinder') {
+            this.store.emit('finder-show', events as string[]);
         }
     }
 
@@ -54,15 +73,13 @@ export default class NeovimProcess {
             }
             case 'mode_info_set': {
                 const modeInfo: any[] = args[1];
-                const modeInfoList = modeInfo.map((info) => {
-                    return {
-                        name: info.name,
-                        shortName: info.short_name,
-                        cursorShape: info.cursor_shape || 'block',
-                        cellPercentage: info.cell_percentage || 0,
-                        attrID: info.attr_id || 0,
-                    };
-                });
+                const modeInfoList = modeInfo.map((info) => ({
+                    name: info.name,
+                    shortName: info.short_name,
+                    cursorShape: info.cursor_shape || 'block',
+                    cellPercentage: info.cell_percentage || 0,
+                    attrID: info.attr_id || 0,
+                }));
                 this.store.emit('mode-info-set', modeInfoList);
                 break;
             }
@@ -137,14 +154,12 @@ export default class NeovimProcess {
             }
 
             case 'popupmenu_show': {
-                const items: PopupmenuItem[] = args[0].map((item: any[]) => {
-                    return {
-                        word: item[0],
-                        kind: item[1],
-                        menu: item[2],
-                        info: item[3],
-                    };
-                });
+                const items: PopupmenuItem[] = args[0].map((item: any[]) => ({
+                    word: item[0],
+                    kind: item[1],
+                    menu: item[2],
+                    info: item[3],
+                }));
                 const selected: number = args[1];
                 const row: number = args[2];
                 const col: number = args[3];
@@ -171,12 +186,10 @@ export default class NeovimProcess {
             }
 
             case 'cmdline_show': {
-                const content: Cell[] = args[0].map((item: any[]) => {
-                    return {
-                        hlID: item[0],
-                        text: item[1],
-                    };
-                });
+                const content: Cell[] = args[0].map((item: any[]) => ({
+                    hlID: item[0],
+                    text: item[1],
+                }));
                 const pos: number = args[1];
                 const firstc: string = args[2] !== '' ? args[2] : args[3];
                 const indent: number = args[4];
