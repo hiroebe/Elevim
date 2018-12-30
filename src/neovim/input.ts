@@ -1,18 +1,24 @@
 import wcwidth = require('wcwidth');
 import Store from './store';
 
+const specialKeys: { [key: string]: string } = {
+    Enter: 'CR',
+    Backspace: 'BS',
+    Tab: 'Tab',
+    Escape: 'Esc',
+    ArrowUp: 'Up',
+    ArrowDown: 'Down',
+    ArrowLeft: 'Left',
+    ArrowRight: 'Right',
+};
+
 export default class Input {
 
-    private static keyWithCtrl(key: string): string {
-        switch (key) {
-            case 'Enter':
-                return 'CR';
-            case 'Backspace':
-                return 'BS';
-            case 'Tab':
-                return 'Tab';
-            case ' ':
-                return 'Space';
+    private static keyWithMod(key: string): string {
+        if (key in specialKeys) {
+            return specialKeys[key];
+        } else if (key === ' ') {
+            return 'Space';
         }
         return key.length === 1 ? key : '';
     }
@@ -75,25 +81,19 @@ export default class Input {
             return;
         }
         if (event.ctrlKey) {
-            const withCtrl = Input.keyWithCtrl(event.key);
-            if (withCtrl !== '') {
-                this.inputToNvim('<C-' + withCtrl + '>', event);
+            const withMod = Input.keyWithMod(event.key);
+            if (withMod !== '') {
+                this.inputToNvim('<C-' + withMod + '>', event);
             }
             return;
+        } else if (event.shiftKey && event.key in specialKeys) {
+            const withMod = Input.keyWithMod(event.key);
+            if (withMod !== '') {
+                this.inputToNvim('<S-' + withMod + '>', event);
+            }
         }
-        switch (event.key) {
-            case 'Enter':
-                this.inputToNvim('<CR>', event);
-                break;
-            case 'Backspace':
-                this.inputToNvim('<BS>', event);
-                break;
-            case 'Tab':
-                this.inputToNvim('<Tab>', event);
-                break;
-            case 'Escape':
-                this.inputToNvim('<Esc>', event);
-                break;
+        if (event.key in specialKeys) {
+            this.inputToNvim('<' + specialKeys[event.key] + '>', event);
         }
     }
 
