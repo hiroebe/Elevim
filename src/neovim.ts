@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as toml from 'toml';
 import Cmdline from './neovim/cmdline';
 import Finder from './neovim/finder';
+import Markdown from './neovim/markdown';
 import Popupmenu from './neovim/popupmenu';
 import Process from './neovim/process';
 import Screen from './neovim/screen';
@@ -26,6 +27,7 @@ export default class Neovim {
     public tabline: Tabline;
     public cmdline: Cmdline;
     public finder: Finder;
+    public markdown: Markdown;
 
     constructor() {
         this.store = new Store();
@@ -35,6 +37,7 @@ export default class Neovim {
         this.tabline = new Tabline(this.store);
         this.cmdline = new Cmdline(this.store);
         this.finder = new Finder(this.store, this.process.getClient());
+        this.markdown = new Markdown(this.store, this.process.getClient());
 
         const configPath = path.join(process.env.HOME, '.config', 'elevim', 'config.toml');
         fs.readFile(configPath, { encoding: 'utf8' }, (_, data: Buffer) => {

@@ -86,7 +86,9 @@ export default class NeovimStore {
 
         remote.getCurrentWindow().on('resize', this.resize.bind(this));
 
-        this.prependListener('nvim-resize', this.onNvimResize.bind(this))
+
+        this.prependListener('check-resize', this.resize.bind(this))
+            .prependListener('nvim-resize', this.onNvimResize.bind(this))
             .prependListener('update-specified-font', this.onUpdateSpecifiedFont.bind(this))
             .prependListener('update-font-size', this.onUpdateFontSize.bind(this))
             .prependListener('mode-info-set', this.onModeInfoSet.bind(this))
@@ -119,7 +121,9 @@ export default class NeovimStore {
         this.emit('input', this.inputDirection, key);
     }
 
-    public emit(event: 'resize-screen'): boolean;
+    public emit(event: 'check-resize'): boolean;
+    public emit(event: 'screen-size-changed'): boolean;
+    public emit(event: 'grid-size-changed'): boolean;
     public emit(event: 'nvim-resize', rows: number, cols: number): boolean;
     public emit(event: 'update-specified-font', size: number, family: string, lineHeight: number): boolean;
     public emit(event: 'update-font-size', width: number, height: number): boolean;
@@ -147,6 +151,7 @@ export default class NeovimStore {
     public emit(event: 'wildmenu-hide'): boolean;
     public emit(event: 'finder-show', args: string[]): boolean;
     public emit(event: 'finder-hide'): boolean;
+    public emit(event: 'markdown', method: string): boolean;
     public emit(event: string, ...args: any[]): boolean {
         const ret = this.eventEmitter.emit(event, ...args);
         if (event === 'update-font-size') {
@@ -155,7 +160,9 @@ export default class NeovimStore {
         return ret;
     }
 
-    public on(event: 'resize-screen', fn: () => void): this;
+    public on(event: 'check-resize', fn: () => void): this;
+    public on(event: 'screen-size-changed', fn: () => void): this;
+    public on(event: 'grid-size-changed', fn: () => void): this;
     public on(event: 'nvim-resize', fn: (rows: number, cols: number) => void): this;
     public on(event: 'update-specified-font', fn: (size: number, family: string, lineHeight: number) => void): this;
     public on(event: 'update-font-size', fn: (width: number, height: number) => void): this;
@@ -183,12 +190,15 @@ export default class NeovimStore {
     public on(event: 'wildmenu-hide', fn: () => void): this;
     public on(event: 'finder-show', fn: (args: string[]) => void): this;
     public on(event: 'finder-hide', fn: () => void): this;
+    public on(event: 'markdown', fn: (method: string) => void): this;
     public on(event: string, fn: (...args: any[]) => void): this {
         this.eventEmitter.on(event, fn);
         return this;
     }
 
-    private prependListener(event: 'resize-screen', fn: () => void): this;
+    private prependListener(event: 'check-resize', fn: () => void): this;
+    private prependListener(event: 'screen-size-changed', fn: () => void): this;
+    private prependListener(event: 'grid-size-changed', fn: () => void): this;
     private prependListener(event: 'nvim-resize', fn: (rows: number, cols: number) => void): this;
     private prependListener(event: 'update-specified-font', fn: (size: number, family: string, lineHeight: number) => void): this;
     private prependListener(event: 'update-font-size', fn: (width: number, height: number) => void): this;
@@ -357,6 +367,8 @@ export default class NeovimStore {
     private resize() {
         const rowsBefore = this.size.rows;
         const colsBefore = this.size.cols;
+        const widthBefore = this.size.width;
+        const heightBefore = this.size.height;
 
         const ratio = window.devicePixelRatio;
         const container = document.getElementById('container') as HTMLDivElement;
@@ -372,7 +384,10 @@ export default class NeovimStore {
             height,
         };
         if (rows !== rowsBefore || cols !== colsBefore) {
-            this.emit('resize-screen');
+            this.emit('grid-size-changed');
+        }
+        if (width !== widthBefore || height !== heightBefore) {
+            this.emit('screen-size-changed');
         }
     }
 }

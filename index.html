@@ -2,6 +2,8 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="./css/github-markdown.css" />
+    <link rel="stylesheet" href="./node_modules/highlight.js/styles/github.css" />
     <style>
       ::-webkit-scrollbar {
         display: none;
@@ -9,21 +11,19 @@
       html,body {
         margin: 0px;
         padding: 0px;
-        width: 100%;
-        height: 100%;
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        grid-template-cols: 1fr auto;
       }
       div,ul {
         margin: 0px;
         padding: 0px;
       }
-      .vertical {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        height: 100%;
-      }
       #container {
-        flex: auto;
+        grid-row: 2;
+        grid-col: 1;
         position: relative;
         overflow: hidden;
       }
@@ -52,7 +52,8 @@
         white-space: pre;
       }
       #tabline {
-        flex: none;
+        grid-row: 1;
+        grid-col: 1;
       }
       #cmdline-container {
         position: absolute;
@@ -73,18 +74,22 @@
         overflow: scroll;
         white-space: pre;
       }
+      #markdown {
+        grid-row: 1 / 3;
+        grid-col: 2;
+        overflow: scroll;
+      }
     </style>
   </head>
   <body>
-    <div class="vertical">
-      <div id="tabline"></div>
-      <div id="container">
-        <canvas id="screen"></canvas>
-        <canvas id="cursor"></canvas>
-        <input id="input" autocomplete="off" autofocus />
-        <ul id="popupmenu"></ul>
-      </div>
+    <div id="tabline"></div>
+    <div id="container">
+      <canvas id="screen"></canvas>
+      <canvas id="cursor"></canvas>
+      <input id="input" autocomplete="off" autofocus />
+      <ul id="popupmenu"></ul>
     </div>
+    <div id="markdown" class="markdown-body"></div>
     <div id="cmdline-container">
       <div id="cmdline"></div>
       <div id="wildmenu-header"></div>

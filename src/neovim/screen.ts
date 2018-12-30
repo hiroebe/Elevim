@@ -41,7 +41,7 @@ export default class NeovimScreen {
         this.canvas.addEventListener('click', () => this.input.focus());
 
         store
-            .on('resize-screen', this.resize.bind(this))
+            .on('screen-size-changed', this.resize.bind(this))
             .on('update-specified-font', this.measureFont.bind(this))
             .on('default-colors-set', this.clear.bind(this))
             .on('set-chars', this.draw.bind(this))

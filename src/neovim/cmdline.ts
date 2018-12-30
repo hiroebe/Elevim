@@ -32,7 +32,7 @@ export default class NeovimCmdline {
             .on('wildmenu-show', this.wmShow.bind(this))
             .on('wildmenu-select', this.wmSelect.bind(this))
             .on('wildmenu-hide', this.wmHide.bind(this))
-            .on('resize-screen', this.resize.bind(this))
+            .on('screen-size-changed', this.resize.bind(this))
             .on('update-specified-font', this.setFont.bind(this))
             .on('default-colors-set', this.setColor.bind(this))
             .on('finder-show', () => this.manualMode = true)

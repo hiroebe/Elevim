@@ -21,6 +21,7 @@ export default class NeovimProcess {
         this.client.on('notification', this.onNotified.bind(this));
         this.client.on('disconnect', this.onDisconnected.bind(this));
         this.client.subscribe('ElevimFinder');
+        this.client.subscribe('ElevimMarkdown');
 
         store.on('input', (to: Inputter, key: string) => {
             if (to === Inputter.nvim) {
@@ -39,7 +40,7 @@ export default class NeovimProcess {
             ext_cmdline: true,
             ext_wildmenu: true,
         });
-        this.store.on('resize-screen', () => this.client.uiTryResize(this.store.size.cols, this.store.size.rows));
+        this.store.on('grid-size-changed', () => this.client.uiTryResize(this.store.size.cols, this.store.size.rows));
     }
 
     public getClient(): Neovim {
@@ -57,6 +58,8 @@ export default class NeovimProcess {
             }
         } else if (method === 'ElevimFinder') {
             this.store.emit('finder-show', events as string[]);
+        } else if (method === 'ElevimMarkdown') {
+            this.store.emit('markdown', events[0] as string);
         }
     }
 
