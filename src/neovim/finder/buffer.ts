@@ -11,7 +11,6 @@ export default class Buffer implements Source {
 
     public async onStart(args: string[], nvimClient: Neovim) {
         const buffers = await nvimClient.buffers;
-        this.items = [];
         for (const buffer of buffers) {
             let label = await buffer.name;
             if (label === '') {

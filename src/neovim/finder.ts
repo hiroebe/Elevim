@@ -147,6 +147,7 @@ export default class Finder {
             return;
         }
         args.shift();
+        source.items = [];
         await source.onStart(args, this.nvimClient);
         if (source.items.length === 0) {
             this.hide();
@@ -264,7 +265,12 @@ export default class Finder {
         const filteredItems: ItemWithIdx[] = [];
 
         if (text.startsWith('/') && text.endsWith('/')) {
-            const reg = new RegExp(text.slice(1, -1));
+            let reg: RegExp;
+            try {
+                reg = new RegExp(text.slice(1, -1));
+            } catch {
+                return [];
+            }
             for (let i = 0; i < items.length; i++) {
                 if (reg.test(items[i].label.toLowerCase())) {
                     filteredItems.push({

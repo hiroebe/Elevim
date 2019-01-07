@@ -16,7 +16,6 @@ export default class File implements Source {
         const targetPath = args.length > 0 ? args[0] : await nvimClient.eval('getcwd()') as string;
 
         if (!fs.statSync(targetPath).isDirectory()) {
-            this.items = [];
             return;
         }
         const filenames = fs.readdirSync(targetPath);

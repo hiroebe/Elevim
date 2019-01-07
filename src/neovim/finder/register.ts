@@ -18,7 +18,6 @@ export default class Register implements Source {
             'u', 'v', 'w', 'x', 'y', 'z',
             '-', '.', ':', '#', '%', '/', '=',
         ];
-        this.items = [];
         for (const regname of regnames) {
             const reg = await nvimClient.eval("getreg('" + regname + "')") as string;
             if (reg === '') {

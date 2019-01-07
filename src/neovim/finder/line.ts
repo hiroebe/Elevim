@@ -11,11 +11,11 @@ export default class Line implements Source {
 
     public async onStart(args: string[], nvimClient: Neovim) {
         const lines = await nvimClient.buffer.getLines() as string[];
+
         if (lines.length === 1 && lines[0] === '') {
             return;
         }
 
-        this.items = [];
         for (let i = 0; i < lines.length; i++) {
             this.items.push({
                 label: lines[i],

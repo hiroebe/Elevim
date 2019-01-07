@@ -15,13 +15,11 @@ export default class Grep implements Source {
 
     public async onStart(args: string[], nvimClient: Neovim) {
         if (args.length < 2) {
-            this.items = [];
             return;
         }
         const pattern = args[0];
         const cwd = args[1];
         if (pattern === '' || cwd === '') {
-            this.items = [];
             return;
         }
         const output = cp.execSync('git grep -ni ' + pattern, { cwd }).toString();
