@@ -4,6 +4,7 @@ import File from './finder/file';
 import FileOld from './finder/file_old';
 import FileRec from './finder/file_rec';
 import Grep from './finder/grep';
+import Line from './finder/line';
 import Loclist from './finder/loclist';
 import Register from './finder/register';
 import Term from './finder/term';
@@ -74,6 +75,7 @@ export default class Finder {
         this.sources.set('loclist', new Loclist());
         this.sources.set('buffer', new Buffer());
         this.sources.set('term', new Term());
+        this.sources.set('line', new Line());
 
         store
             .on('input', this.input.bind(this))

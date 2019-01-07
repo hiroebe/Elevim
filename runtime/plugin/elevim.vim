@@ -11,6 +11,7 @@ command! FinderBuffer call rpcnotify(0, 'ElevimFinder', 'buffer')
 command! FinderRegister call rpcnotify(0, 'ElevimFinder', 'register')
 command! FinderGrep call s:finder_grep()
 command! FinderTerm call rpcnotify(0, 'ElevimFinder', 'term')
+command! FinderLine call rpcnotify(0, 'ElevimFinder', 'line')
 
 function! s:finder_grep()
     let pattern = input('Pattern: ')

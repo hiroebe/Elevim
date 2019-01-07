@@ -22,7 +22,6 @@ export default class Loclist implements Source {
             line: result['lnum'],
             col: result['col'],
         }));
-        return;
     }
 
     public doAction(selected: number, nvimClient: Neovim): string[] {

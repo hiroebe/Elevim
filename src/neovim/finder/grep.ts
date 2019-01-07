@@ -39,7 +39,6 @@ export default class Grep implements Source {
                     col,
                 };
             });
-        return;
     }
 
     public doAction(selected: number, nvimClient: Neovim): string[] {

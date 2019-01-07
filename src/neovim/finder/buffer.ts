@@ -20,7 +20,6 @@ export default class Buffer implements Source {
             const bufnr = buffer.data as number;
             this.items.push({ label, bufnr });
         }
-        return;
     }
 
     public doAction(selected: number, nvimClient: Neovim): string[] {

@@ -21,7 +21,6 @@ export default class Term implements Source {
             const label = await buffer.getVar('term_title') as string;
             this.items.push({ label, bufnr });
         }
-        return;
     }
 
     public doAction(selected: number, nvimClient: Neovim): string[] {
