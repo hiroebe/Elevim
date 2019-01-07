@@ -261,8 +261,22 @@ export default class Finder {
     }
 
     private filter(text: string, items: Item[]): ItemWithIdx[] {
-        const patterns = text.split(' ');
         const filteredItems: ItemWithIdx[] = [];
+
+        if (text.startsWith('/') && text.endsWith('/')) {
+            const reg = new RegExp(text.slice(1, -1));
+            for (let i = 0; i < items.length; i++) {
+                if (reg.test(items[i].label.toLowerCase())) {
+                    filteredItems.push({
+                        label: items[i].label,
+                        idx: i,
+                    });
+                }
+            }
+            return filteredItems;
+        }
+
+        const patterns = text.split(' ');
         for (let i = 0; i < items.length; i++) {
             let match = true;
             let idx = -1;
