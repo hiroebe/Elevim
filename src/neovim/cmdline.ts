@@ -1,3 +1,4 @@
+import wcwidth = require('wcwidth');
 import { shiftColor } from '../utils';
 import Store, { Cell } from './store';
 
@@ -7,6 +8,7 @@ export default class NeovimCmdline {
     private header: HTMLDivElement;
     private wildmenu: HTMLUListElement;
     private cursor: HTMLSpanElement;
+    private text: string;
     private manualMode: boolean;
 
     constructor(private readonly store: Store) {
@@ -23,6 +25,7 @@ export default class NeovimCmdline {
         this.container.style.display = 'none';
         this.wildmenu.style.display = 'none';
 
+        this.text = '';
         this.manualMode = false;
 
         store
@@ -40,6 +43,8 @@ export default class NeovimCmdline {
     }
 
     private show(content: Cell[], pos: number, firstc: string, indent: number, level: number) {
+        this.text = content.map((cell) => cell.text).join('');
+
         while (this.cmdline.firstChild) {
             this.cmdline.removeChild(this.cmdline.firstChild);
         }
@@ -50,7 +55,8 @@ export default class NeovimCmdline {
         firstcSpan.innerText = firstc;
         this.cmdline.appendChild(firstcSpan);
 
-        this.cursor.style.left = pos * this.store.font.width / ratio + 1 + 'px';
+        const correctPos = this.calcCorrectPos(pos);
+        this.cursor.style.left = correctPos * this.store.font.width / ratio + 1 + 'px';
         this.cmdline.appendChild(this.cursor);
 
         for (const cell of content) {
@@ -66,7 +72,8 @@ export default class NeovimCmdline {
 
     private setpos(pos: number, level: number) {
         const ratio = window.devicePixelRatio;
-        this.cursor.style.left = pos * this.store.font.width / ratio + 1 + 'px';
+        const correctPos = this.calcCorrectPos(pos);
+        this.cursor.style.left = correctPos * this.store.font.width / ratio + 1 + 'px';
     }
 
     private hide() {
@@ -160,5 +167,20 @@ export default class NeovimCmdline {
         this.container.style.backgroundColor = hl.bg;
         this.cmdline.style.backgroundColor = shiftColor(hl.bg, 0.5);
         this.cursor.style.borderColor = hl.fg;
+    }
+
+    private calcCorrectPos(pos: number): number {
+        let wrongPos = 0;
+        let correctPos = 0;
+        for (let i = 0; i < this.text.length; i++) {
+            const c = this.text[i];
+            const w = wcwidth(c);
+            wrongPos += w > 1 ? 3 : 1;
+            correctPos += w;
+            if (wrongPos === pos) {
+                return correctPos;
+            }
+        }
+        return pos;
     }
 }
