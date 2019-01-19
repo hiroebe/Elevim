@@ -15,20 +15,26 @@ export default class Markdown {
             gfm: true,
         });
 
-        store.on('markdown', this.handler.bind(this));
+        nvimClient.subscribe('ElevimMarkdown');
+        nvimClient.on('notification', this.onNotified.bind(this));
     }
 
-    private handler(method: string) {
-        switch (method) {
-            case 'start':
-                this.start();
-                break;
-            case 'stop':
-                this.stop();
-                break;
-            case 'update':
-                this.update();
-                break;
+    private onNotified(method: string, events: any[]) {
+        if (method === 'ElevimMarkdown') {
+            if (events.length < 1) {
+                return;
+            }
+            switch (events[0]) {
+                case 'start':
+                    this.start();
+                    break;
+                case 'stop':
+                    this.stop();
+                    break;
+                case 'update':
+                    this.update();
+                    break;
+            }
         }
     }
 

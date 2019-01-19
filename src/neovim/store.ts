@@ -151,7 +151,6 @@ export default class NeovimStore {
     public emit(event: 'wildmenu-hide'): boolean;
     public emit(event: 'finder-show', args: string[]): boolean;
     public emit(event: 'finder-hide'): boolean;
-    public emit(event: 'markdown', method: string): boolean;
     public emit(event: string, ...args: any[]): boolean {
         const ret = this.eventEmitter.emit(event, ...args);
         if (event === 'update-font-size') {
@@ -190,7 +189,6 @@ export default class NeovimStore {
     public on(event: 'wildmenu-hide', fn: () => void): this;
     public on(event: 'finder-show', fn: (args: string[]) => void): this;
     public on(event: 'finder-hide', fn: () => void): this;
-    public on(event: 'markdown', fn: (method: string) => void): this;
     public on(event: string, fn: (...args: any[]) => void): this {
         this.eventEmitter.on(event, fn);
         return this;
