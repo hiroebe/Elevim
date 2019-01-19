@@ -18,3 +18,13 @@ function! s:finder_grep()
     let dir = input('dir: ', getcwd(), 'dir')
     call rpcnotify(0, 'ElevimFinder', 'grep', pattern, dir)
 endfunction
+
+command! ShowImagePreview call s:show_image_preview()
+
+function! s:show_image_preview()
+    call rpcnotify(0, 'ElevimImagePreview', 'show', expand('<cfile>:p'))
+    augroup ElevimImagePreview
+        autocmd!
+        autocmd CursorMoved,CursorMovedI * call rpcnotify(0, 'ElevimImagePreview', 'hide') | autocmd! ElevimImagePreview
+    augroup END
+endfunction
