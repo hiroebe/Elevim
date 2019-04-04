@@ -2,17 +2,29 @@ import Store, { PopupmenuItem } from './store';
 
 export default class NeovimPopupmenu {
     private element: HTMLUListElement;
+    private showingWildmenu: boolean;
 
     constructor(private readonly store: Store) {
         this.element = document.getElementById('popupmenu') as HTMLUListElement;
+        this.showingWildmenu = false;
 
-        store
+        store.eventEmitter
             .on('popupmenu-show', this.show.bind(this))
             .on('popupmenu-select', this.select.bind(this))
             .on('popupmenu-hide', this.hide.bind(this));
     }
 
-    private show(items: PopupmenuItem[], selected: number, row: number, col: number) {
+    private show(items: PopupmenuItem[], selected: number, row: number, col: number, gridIdx: number) {
+        if (gridIdx === -1) {
+            this.store.eventEmitter.emit('wildmenu-show', items.map((i) => i.word));
+            this.showingWildmenu = true;
+            return;
+        }
+        this.showingWildmenu = false;
+
+        const { startRow, startCol } = this.store.grids.get(gridIdx);
+        row += startRow;
+        col += startCol;
         while (this.element.firstChild) {
             this.element.removeChild(this.element.firstChild);
         }
@@ -62,6 +74,11 @@ export default class NeovimPopupmenu {
     }
 
     private select(select: number) {
+        if (this.showingWildmenu) {
+            this.store.eventEmitter.emit('wildmenu-select', select);
+            return;
+        }
+
         const hl = this.store.hlMap.get(0);
 
         const li = this.element.children[select] as HTMLLIElement;
@@ -88,6 +105,10 @@ export default class NeovimPopupmenu {
     }
 
     private hide() {
+        if (this.showingWildmenu) {
+            this.store.eventEmitter.emit('wildmenu-hide');
+            this.showingWildmenu = false;
+        }
         this.element.style.display = 'none';
     }
 

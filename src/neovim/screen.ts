@@ -17,10 +17,7 @@ export default class NeovimScreen {
     private hiddenCanvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private hiddenCtx: CanvasRenderingContext2D;
-    private modifiedRect: IRect;
-    private redrawTimer: number;
-    private redrawTimeoutFunc: () => void;
-    private lastScrollTime: number;
+    private flushTimer: number;
 
     constructor(private readonly store: Store) {
         this.cursor = new Cursor(store);
@@ -29,48 +26,16 @@ export default class NeovimScreen {
         this.hiddenCanvas = document.getElementById('hidden-screen') as HTMLCanvasElement;
         this.ctx = this.canvas.getContext('2d');
         this.hiddenCtx = this.hiddenCanvas.getContext('2d');
-        this.modifiedRect = { top: -1, bot: -1, left: -1, right: -1 };
-        this.redrawTimer = null;
-        this.redrawTimeoutFunc = () => {
-            this.redrawTimer = null;
-            this.redrawAll();
-            this.flush();
-        };
-        this.lastScrollTime = 0;
 
         this.canvas.addEventListener('click', () => this.input.focus());
 
-        store
+        store.eventEmitter
             .on('grid-size-changed', this.resize.bind(this))
             .on('update-specified-font', this.measureFont.bind(this))
             .on('default-colors-set', this.clear.bind(this))
-            .on('set-chars', this.draw.bind(this))
             .on('clear', this.clear.bind(this))
-            .on('scroll', this.scheduleScroll.bind(this))
-            .on('flush', this.flush.bind(this));
-    }
-
-    private updateModifiedRect(newTop: number, newBot: number, newLeft: number, newRight: number) {
-        const { top, bot, left, right } = this.modifiedRect;
-        if (top === -1 || newTop < top) {
-            this.modifiedRect.top = newTop;
-        }
-        if (bot === -1 || newBot > bot) {
-            this.modifiedRect.bot = newBot;
-        }
-        if (left === -1 || newLeft < left) {
-            this.modifiedRect.left = newLeft;
-        }
-        if (right === -1 || newRight > right) {
-            this.modifiedRect.right = newRight;
-        }
-    }
-
-    private resetRedrawTimer() {
-        if (this.redrawTimer !== null) {
-            window.clearTimeout(this.redrawTimer);
-        }
-        this.redrawTimer = window.setTimeout(this.redrawTimeoutFunc, 1);
+            .on('scroll', this.scroll.bind(this))
+            .on('flush', this.scheduleFlush.bind(this));
     }
 
     private clear() {
@@ -78,52 +43,14 @@ export default class NeovimScreen {
         const defaultHl = this.store.hlMap.get(0);
         this.hiddenCtx.fillStyle = defaultHl.bg;
         this.hiddenCtx.fillRect(0, 0, width, height);
-
-        this.modifiedRect = { top: 0, bot: this.store.size.rows, left: 0, right: this.store.size.cols };
     }
 
-    private draw(row: number, colStart: number, cells: any[][]) {
-        if (this.redrawTimer !== null) {
-            this.resetRedrawTimer();
-            return;
-        }
-        let offset = 0;
-        let hlID = 0;
-        let text = '';
-        for (const cell of cells) {
-            if (cell.length > 1) {
-                if (text !== '') {
-                    this.drawChars(text, hlID, row, colStart + offset);
-                    offset += wcwidth(text);
-                    text = '';
-                }
-                hlID = cell[1];
-            }
-            const c: string = cell[0];
-            const times: number = cell.length === 3 ? cell[2] : 1;
-            text += c.repeat(times);
-        }
-        this.drawChars(text, hlID, row, colStart + offset);
-        offset += wcwidth(text);
-
-        this.updateModifiedRect(row, row + 1, colStart, colStart + offset);
-    }
-
-    private scheduleScroll(top: number, bot: number, left: number, right: number, rows: number) {
-        if (this.redrawTimer !== null) {
-            this.resetRedrawTimer();
-            return;
-        }
-        const last = this.lastScrollTime;
-        this.lastScrollTime = performance.now();
-        if (this.lastScrollTime - last < 1) {
-            this.resetRedrawTimer();
-            return;
-        }
-        this.scroll(top, bot, left, right, rows);
-    }
-
-    private scroll(top: number, bot: number, left: number, right: number, rows: number) {
+    private scroll(gridIdx: number, top: number, bot: number, left: number, right: number, rows: number) {
+        const grid = this.store.grids.get(gridIdx);
+        top += grid.startRow;
+        bot += grid.startRow;
+        left += grid.startCol;
+        right += grid.startCol;
         const { width, height } = this.store.font;
         const x = left * width;
         const y = top * height;
@@ -137,53 +64,22 @@ export default class NeovimScreen {
         this.hiddenCtx.clip();
         this.hiddenCtx.drawImage(this.hiddenCanvas, 0, -dy);
         this.hiddenCtx.restore();
+    }
 
-        this.updateModifiedRect(top, bot, left, right);
+    private scheduleFlush() {
+        if (this.flushTimer !== null) {
+            window.clearTimeout(this.flushTimer);
+        }
+        this.flushTimer = window.setTimeout(this.flush.bind(this), 10);
     }
 
     private flush() {
-        if (this.redrawTimer !== null) {
-            this.resetRedrawTimer();
-            return;
-        }
-        let { top, bot, left, right } = this.modifiedRect;
-
-        if (top === 0 && bot === this.store.size.rows && left === 0 && right === this.store.size.cols) {
-            this.ctx.drawImage(this.hiddenCanvas, 0, 0);
-            this.modifiedRect = { top: -1, bot: -1, left: -1, right: -1 };
-            return;
-        }
-
-        if (top === -1) {
-            top = 0;
-        }
-        if (bot === -1) {
-            bot = this.store.size.rows;
-        }
-        if (left === -1) {
-            left = 0;
-        }
-        if (right === -1) {
-            right = this.store.size.cols;
-        }
-
-        const { width, height } = this.store.font;
-        const x = left * width;
-        const y = top * height;
-        const w = (right - left) * width;
-        const h = (bot - top) * height;
-
-        this.ctx.save();
-        this.ctx.beginPath();
-        this.ctx.rect(x, y, w, h);
-        this.ctx.clip();
+        this.redrawAll();
         this.ctx.drawImage(this.hiddenCanvas, 0, 0);
-        this.ctx.restore();
-
-        this.modifiedRect = { top: -1, bot: -1, left: -1, right: -1 };
     }
 
-    private drawChars(text: string, hlID: number, row: number, col: number) {
+    private drawChars(gridIdx: number, text: string, hlID: number, row: number, col: number) {
+        const grid = this.store.grids.get(gridIdx);
         const hl = this.store.hlMap.get(hlID);
         const defaultHl = this.store.hlMap.get(0);
         let fg = hl.fg || defaultHl.fg;
@@ -193,8 +89,8 @@ export default class NeovimScreen {
         }
 
         const { width, height } = this.store.font;
-        const x = col * width;
-        const y = row * height;
+        const x = (col + grid.startCol) * width;
+        const y = (row + grid.startRow) * height;
         const margin = (this.store.lineHeight - 1.2) / 2 * height;
 
         const rectWidth = wcwidth(text) * width;
@@ -219,10 +115,10 @@ export default class NeovimScreen {
         if (col <= 0) {
             return;
         }
-        const beforeCell = this.store.grid[row][col - 1];
-        const beforeHl = this.store.hlMap.get(beforeCell.hlID);
-        if (beforeHl.italic) {
-            this.drawChars(beforeCell.text, beforeCell.hlID, row, col - 1);
+        const leftCell = grid.cells[row][col - 1];
+        const leftCellHl = this.store.hlMap.get(leftCell.hlID);
+        if (leftCellHl.italic) {
+            this.drawChars(gridIdx, leftCell.text, leftCell.hlID, row, col - 1);
         }
     }
 
@@ -231,13 +127,40 @@ export default class NeovimScreen {
         this.hiddenCtx.fillStyle = defaultHl.bg;
         this.hiddenCtx.fillRect(0, 0, this.store.size.width, this.store.size.height);
 
-        for (let i = 0; i < this.store.size.rows; i++) {
-            for (let j = 0; j < this.store.size.cols; j++) {
-                const cell = this.store.grid[i][j];
-                this.drawChars(cell.text, cell.hlID, i, j);
-            }
+        if (!this.store.winScrollingOver) {
+            this.drawGrid(1);
         }
-        this.modifiedRect = { top: 0, bot: this.store.size.rows, left: 0, right: this.store.size.cols };
+        for (const gridIdx of this.store.grids.keys()) {
+            if (gridIdx === 1) {
+                continue;
+            }
+            this.drawGrid(gridIdx);
+        }
+        if (this.store.winScrollingOver) {
+            this.drawGrid(1);
+        }
+    }
+
+    private drawGrid(gridIdx: number) {
+        const grid = this.store.grids.get(gridIdx);
+        if (!grid.visible) {
+            return;
+        }
+        for (let i = 0; i < grid.cells.length; i++) {
+            let text = grid.cells[i][0].text;
+            let hlID = grid.cells[i][0].hlID;
+            for (let j = 1; j < grid.cells[i].length; j++) {
+                const cell = grid.cells[i][j];
+                if (cell.hlID === hlID) {
+                    text += cell.text;
+                } else {
+                    this.drawChars(gridIdx, text, hlID, i, j - wcwidth(text));
+                    text = cell.text;
+                    hlID = cell.hlID;
+                }
+            }
+            this.drawChars(gridIdx, text, hlID, i, grid.width - wcwidth(text));
+        }
     }
 
     private resize() {
@@ -260,6 +183,6 @@ export default class NeovimScreen {
         this.hiddenCtx.font = size * ratio + 'px ' + family;
         const width = this.hiddenCtx.measureText('A').width;
         const height = Math.floor(width * 2 * this.store.lineHeight);
-        this.store.emit('update-font-size', width, height);
+        this.store.eventEmitter.emit('update-font-size', width, height);
     }
 }

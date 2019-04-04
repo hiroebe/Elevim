@@ -9,7 +9,7 @@ export default class NeovimTabline {
         this.element = document.getElementById('tabline') as HTMLDivElement;
         this.element.style.display = 'flex';
 
-        store
+        store.eventEmitter
             .on('tabline-update', this.update.bind(this))
             .on('update-specified-font', this.setFont.bind(this))
             .on('update-font-size', this.resize.bind(this));
@@ -57,5 +57,6 @@ export default class NeovimTabline {
     private resize() {
         const ratio = window.devicePixelRatio;
         this.element.style.height = this.store.font.height / ratio + this.padding * 2 + 'px';
+        this.store.eventEmitter.emit('check-resize');
     }
 }

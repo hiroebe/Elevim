@@ -28,7 +28,7 @@ export default class NeovimCmdline {
         this.text = '';
         this.manualMode = false;
 
-        store
+        store.eventEmitter
             .on('cmdline-show', this.show.bind(this))
             .on('cmdline-pos', this.setpos.bind(this))
             .on('cmdline-hide', this.hide.bind(this))

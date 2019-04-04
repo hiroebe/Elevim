@@ -35,7 +35,7 @@ export default class Input {
         this.element.addEventListener('keydown', this.onKeydownEvent.bind(this));
         this.element.addEventListener('input', this.onInputEvent.bind(this));
 
-        store.on('cursor-goto', this.updateElementPos.bind(this));
+        store.eventEmitter.on('cursor-goto', this.updateElementPos.bind(this));
     }
 
     public focus() {

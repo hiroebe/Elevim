@@ -16,7 +16,7 @@ export default class Cursor {
             this.renderTimer = null;
         };
 
-        store
+        store.eventEmitter
             .on('update-font-size', this.resize.bind(this))
             .on('flush', this.scheduleRender.bind(this))
             .on('busy-start', this.hide.bind(this))
@@ -47,7 +47,9 @@ export default class Cursor {
     }
 
     private render() {
-        const { row, col } = this.store.cursor;
+        const grid = this.store.grids.get(this.store.cursor.gridIdx);
+        const row = grid.startRow + this.store.cursor.row;
+        const col = grid.startCol + this.store.cursor.col;
         if (row >= this.store.size.rows || col >= this.store.size.cols) {
             return;
         }
@@ -60,7 +62,7 @@ export default class Cursor {
         this.element.style.top = y + 'px';
 
         const modeInfo = this.store.modeInfoList[this.store.modeIdx];
-        const cell = this.store.grid[row][col];
+        const cell = grid.cells[this.store.cursor.row][this.store.cursor.col];
         const hl = this.store.hlMap.get(cell.hlID);
         // const hl = this.store.hlMap.get(modeInfo.attrID);
         const defaultHl = this.store.hlMap.get(0);

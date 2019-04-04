@@ -40,12 +40,12 @@ export default class Markdown {
 
     private start() {
         this.element.style.display = 'block';
-        this.store.emit('check-resize');
+        this.store.eventEmitter.emit('check-resize');
     }
 
     private stop() {
         this.element.style.display = 'none';
-        this.store.emit('check-resize');
+        this.store.eventEmitter.emit('check-resize');
     }
 
     private update() {
@@ -53,7 +53,7 @@ export default class Markdown {
             const markdownString = lines.join('\n');
             const parsed = marked.parse(markdownString);
             this.element.innerHTML = parsed;
-            this.store.emit('check-resize');
+            this.store.eventEmitter.emit('check-resize');
         });
     }
 }

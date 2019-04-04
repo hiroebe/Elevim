@@ -1,5 +1,6 @@
 import { remote } from 'electron';
 import { EventEmitter } from 'events';
+import StrictEventEmitter from 'strict-event-emitter-types';
 import { colorToHexString } from '../utils';
 
 export interface Font {
@@ -17,6 +18,7 @@ export interface Size {
 }
 
 export interface Cursor {
+    gridIdx: number;
     row: number;
     col: number;
 }
@@ -45,6 +47,16 @@ export interface Cell {
     hlID: number;
 }
 
+export interface Grid {
+    cells: Cell[][];
+    winnr: number;
+    startRow: number;
+    startCol: number;
+    width: number;
+    height: number;
+    visible: boolean;
+}
+
 export interface PopupmenuItem {
     word: string;
     kind: string;
@@ -57,6 +69,49 @@ export enum Inputter {
     finder,
 }
 
+interface Events {
+    /* tslint:disable:max-line-length */
+    'check-resize': () => void;
+    'screen-size-changed': () => void;
+    'grid-size-changed': () => void;
+    'nvim-resize': (gridIdx: number, rows: number, cols: number) => void;
+    'update-specified-font': (size: number, family: string, lineHeight: number) => void;
+    'update-font-size': (width: number, height: number) => void;
+    'input': (to: Inputter, key: string) => void;
+    'mode-info-set': (modeInfoList: ModeInfo[]) => void;
+    'mode-change': (mode: string, modeIdx: number) => void;
+    'busy-start': () => void;
+    'busy-stop': () => void;
+    'flush': () => void;
+    'default-colors-set': (fg: number, bg: number, sp: number) => void;
+    'highlight-set': (id: number, attrs: any) => void;
+    'set-chars': (gridIdx: number, row: number, colStart: number, cells: any[][]) => void;
+    'clear': (gridIdx: number) => void;
+    'destroy': (gridIdx: number) => void;
+    'cursor-goto': (gridIdx: number, row: number, col: number) => void;
+    'scroll': (gridIdx: number, top: number, bot: number, left: number, right: number, rows: number) => void;
+    'win-pos': (gridIdx: number, win: number, startRow: number, startCol: number, width: number, height: number) => void;
+    'win-float-pos': (gridIdx: number, win: number, anchor: number, anchorGrid: number, anchorRow: number, anchorCol: number, focusable: boolean) => void;
+    'win-external-pos': (gridIdx: number, win: number) => void;
+    'win-hide': (gridIdx: number) => void;
+    'win-scroll-over-start': () => void;
+    'win-scroll-over-reset': () => void;
+    'win-close': (gridIdx: number) => void;
+    'popupmenu-show': (items: PopupmenuItem[], select: number, row: number, col: number, gridIdx: number) => void;
+    'popupmenu-select': (select: number) => void;
+    'popupmenu-hide': () => void;
+    'tabline-update': (tabnr: number, tabs: string[]) => void;
+    'cmdline-show': (content: Cell[], pos: number, firstc: string, indent: number, level: number) => void;
+    'cmdline-pos': (pos: number, level: number) => void;
+    'cmdline-hide': () => void;
+    'wildmenu-show': (items: string[], header?: string) => void;
+    'wildmenu-select': (selected: number) => void;
+    'wildmenu-hide': () => void;
+    'finder-show': (args: string[]) => void;
+    'finder-hide': () => void;
+    /* tslint:enable:max-line-length */
+}
+
 export default class NeovimStore {
     public font: Font;
     public size: Size;
@@ -65,21 +120,23 @@ export default class NeovimStore {
     public modeIdx: number;
     public modeInfoList: ModeInfo[];
     public hlMap: Map<number, Highlight>;
-    public grid: Cell[][];
+    public grids: Map<number, Grid>;
+    public winScrollingOver: boolean;
     public lineHeight: number;
-    private eventEmitter: EventEmitter;
+    public eventEmitter: StrictEventEmitter<EventEmitter, Events>;
     private inputDirection: Inputter;
 
     constructor() {
         this.updateFont(16, 'monospace');
         this.size = { rows: 0, cols: 0, width: 0, height: 0 };
-        this.cursor = { row: 0, col: 0 };
+        this.cursor = { gridIdx: 0, row: 0, col: 0 };
         this.mode = '';
         this.modeIdx = 0;
         this.modeInfoList = [];
         this.hlMap = new Map();
         this.hlMap.set(0, this.newHighlight());
-        this.grid = [];
+        this.grids = new Map();
+        this.winScrollingOver = false;
         this.lineHeight = 1.2;
         this.eventEmitter = new EventEmitter();
         this.inputDirection = Inputter.nvim;
@@ -87,7 +144,8 @@ export default class NeovimStore {
         remote.getCurrentWindow().on('resize', this.resize.bind(this));
 
 
-        this.prependListener('check-resize', this.resize.bind(this))
+        this.eventEmitter
+            .prependListener('check-resize', this.resize.bind(this))
             .prependListener('nvim-resize', this.onNvimResize.bind(this))
             .prependListener('update-specified-font', this.onUpdateSpecifiedFont.bind(this))
             .prependListener('update-font-size', this.onUpdateFontSize.bind(this))
@@ -97,8 +155,16 @@ export default class NeovimStore {
             .prependListener('highlight-set', this.onHighlightSet.bind(this))
             .prependListener('set-chars', this.onSetChars.bind(this))
             .prependListener('clear', this.onClear.bind(this))
+            .prependListener('destroy', this.onDestroy.bind(this))
             .prependListener('cursor-goto', this.onCursorGoto.bind(this))
             .prependListener('scroll', this.onScroll.bind(this))
+            .prependListener('win-pos', this.onWinPos.bind(this))
+            .prependListener('win-float-pos', this.onWinFloatPos.bind(this))
+            // .prependListener('win-external-pos', this.onWinExternalPos.bind(this))
+            .prependListener('win-hide', this.onWinHide.bind(this))
+            .prependListener('win-scroll-over-start', () => this.winScrollingOver = true)
+            .prependListener('win-scroll-over-reset', () => this.winScrollingOver = false)
+            .prependListener('win-close', this.onWinClose.bind(this))
             .prependListener('finder-show', () => this.inputDirection = Inputter.finder)
             .prependListener('finder-hide', () => this.inputDirection = Inputter.nvim);
     }
@@ -118,109 +184,11 @@ export default class NeovimStore {
     }
 
     public inputKey(key: string) {
-        this.emit('input', this.inputDirection, key);
+        this.eventEmitter.emit('input', this.inputDirection, key);
     }
 
-    public emit(event: 'check-resize'): boolean;
-    public emit(event: 'screen-size-changed'): boolean;
-    public emit(event: 'grid-size-changed'): boolean;
-    public emit(event: 'nvim-resize', rows: number, cols: number): boolean;
-    public emit(event: 'update-specified-font', size: number, family: string, lineHeight: number): boolean;
-    public emit(event: 'update-font-size', width: number, height: number): boolean;
-    public emit(event: 'input', to: Inputter, key: string): boolean;
-    public emit(event: 'mode-info-set', modeInfoList: ModeInfo[]): boolean;
-    public emit(event: 'mode-change', mode: string, modeIdx: number): boolean;
-    public emit(event: 'busy-start'): boolean;
-    public emit(event: 'busy-stop'): boolean;
-    public emit(event: 'flush'): boolean;
-    public emit(event: 'default-colors-set', fg: number, bg: number, sp: number): boolean;
-    public emit(event: 'highlight-set', id: number, attrs: any): boolean;
-    public emit(event: 'set-chars', row: number, colStart: number, cells: any[][]): boolean;
-    public emit(event: 'clear'): boolean;
-    public emit(event: 'cursor-goto', row: number, col: number): boolean;
-    public emit(event: 'scroll', top: number, bot: number, left: number, right: number, rows: number): boolean;
-    public emit(event: 'popupmenu-show', items: PopupmenuItem[], select: number, row: number, col: number): boolean;
-    public emit(event: 'popupmenu-select', select: number): boolean;
-    public emit(event: 'popupmenu-hide'): boolean;
-    public emit(event: 'tabline-update', tabnr: number, tabs: string[]): boolean;
-    public emit(event: 'cmdline-show', content: Cell[], pos: number, firstc: string, indent: number, level: number): boolean;
-    public emit(event: 'cmdline-pos', pos: number, level: number): boolean;
-    public emit(event: 'cmdline-hide'): boolean;
-    public emit(event: 'wildmenu-show', items: string[], header?: string): boolean;
-    public emit(event: 'wildmenu-select', selected: number): boolean;
-    public emit(event: 'wildmenu-hide'): boolean;
-    public emit(event: 'finder-show', args: string[]): boolean;
-    public emit(event: 'finder-hide'): boolean;
-    public emit(event: string, ...args: any[]): boolean {
-        const ret = this.eventEmitter.emit(event, ...args);
-        if (event === 'update-font-size') {
-            this.resize();
-        }
-        return ret;
-    }
-
-    public on(event: 'check-resize', fn: () => void): this;
-    public on(event: 'screen-size-changed', fn: () => void): this;
-    public on(event: 'grid-size-changed', fn: () => void): this;
-    public on(event: 'nvim-resize', fn: (rows: number, cols: number) => void): this;
-    public on(event: 'update-specified-font', fn: (size: number, family: string, lineHeight: number) => void): this;
-    public on(event: 'update-font-size', fn: (width: number, height: number) => void): this;
-    public on(event: 'input', fn: (to: Inputter, key: string) => void): this;
-    public on(event: 'mode-info-set', fn: (modeInfoList: ModeInfo[]) => void): this;
-    public on(event: 'mode-change', fn: (mode: string, modeIdx: number) => void): this;
-    public on(event: 'busy-start', fn: () => void): this;
-    public on(event: 'busy-stop', fn: () => void): this;
-    public on(event: 'flush', fn: () => void): this;
-    public on(event: 'default-colors-set', fn: (fg: number, bg: number, sp: number) => void): this;
-    public on(event: 'highlight-set', fn: (id: number, attrs: any) => void): this;
-    public on(event: 'set-chars', fn: (row: number, colStart: number, cells: any[][]) => void): this;
-    public on(event: 'clear', fn: () => void): this;
-    public on(event: 'cursor-goto', fn: (row: number, col: number) => void): this;
-    public on(event: 'scroll', fn: (top: number, bot: number, left: number, right: number, rows: number) => void): this;
-    public on(event: 'popupmenu-show', fn: (items: PopupmenuItem[], select: number, row: number, col: number) => void): this;
-    public on(event: 'popupmenu-select', fn: (selected: number) => void): this;
-    public on(event: 'popupmenu-hide', fn: () => void): this;
-    public on(event: 'tabline-update', fn: (tabnr: number, tabs: string[]) => void): this;
-    public on(event: 'cmdline-show', fn: (content: Cell[], pos: number, firstc: string, indent: number, level: number) => void): this;
-    public on(event: 'cmdline-pos', fn: (pos: number, level: number) => void): this;
-    public on(event: 'cmdline-hide', fn: () => void): this;
-    public on(event: 'wildmenu-show', fn: (items: string[], header?: string) => void): this;
-    public on(event: 'wildmenu-select', fn: (selected: number) => void): this;
-    public on(event: 'wildmenu-hide', fn: () => void): this;
-    public on(event: 'finder-show', fn: (args: string[]) => void): this;
-    public on(event: 'finder-hide', fn: () => void): this;
-    public on(event: string, fn: (...args: any[]) => void): this {
-        this.eventEmitter.on(event, fn);
-        return this;
-    }
-
-    private prependListener(event: 'check-resize', fn: () => void): this;
-    private prependListener(event: 'screen-size-changed', fn: () => void): this;
-    private prependListener(event: 'grid-size-changed', fn: () => void): this;
-    private prependListener(event: 'nvim-resize', fn: (rows: number, cols: number) => void): this;
-    private prependListener(event: 'update-specified-font', fn: (size: number, family: string, lineHeight: number) => void): this;
-    private prependListener(event: 'update-font-size', fn: (width: number, height: number) => void): this;
-    private prependListener(event: 'input', fn: (key: string) => void): this;
-    private prependListener(event: 'mode-info-set', fn: (modeInfoList: ModeInfo[]) => void): this;
-    private prependListener(event: 'mode-change', fn: (mode: string, modeIdx: number) => void): this;
-    private prependListener(event: 'busy-start', fn: () => void): this;
-    private prependListener(event: 'busy-stop', fn: () => void): this;
-    private prependListener(event: 'flush', fn: () => void): this;
-    private prependListener(event: 'default-colors-set', fn: (fg: number, bg: number, sp: number) => void): this;
-    private prependListener(event: 'highlight-set', fn: (id: number, attrs: any) => void): this;
-    private prependListener(event: 'set-chars', fn: (row: number, colStart: number, cells: any[][]) => void): this;
-    private prependListener(event: 'clear', fn: () => void): this;
-    private prependListener(event: 'cursor-goto', fn: (row: number, col: number) => void): this;
-    private prependListener(event: 'scroll', fn: (top: number, bot: number, left: number, right: number, rows: number) => void): this;
-    private prependListener(event: 'finder-show', fn: (args: string[]) => void): this;
-    private prependListener(event: 'finder-hide', fn: () => void): this;
-    private prependListener(event: string, fn: (...args: any[]) => void): this {
-        this.eventEmitter.prependListener(event, fn);
-        return this;
-    }
-
-    private onNvimResize(rows: number, cols: number) {
-        this.updateGrid(rows, cols);
+    private onNvimResize(gridIdx: number, rows: number, cols: number) {
+        this.resizeGrid(gridIdx, rows, cols);
     }
 
     private onUpdateSpecifiedFont(fontSize: number, fontFamily: string, lineHeight: number) {
@@ -231,6 +199,7 @@ export default class NeovimStore {
     private onUpdateFontSize(width: number, height: number) {
         this.font.width = width;
         this.font.height = height;
+        this.eventEmitter.emit('check-resize');
     }
 
     private onModeInfoSet(modeInfoList: ModeInfo[]) {
@@ -261,24 +230,59 @@ export default class NeovimStore {
         this.hlMap.set(id, hl);
     }
 
-    private onSetChars(row: number, colStart: number, cells: any[][]) {
-        this.setChars(row, colStart, cells);
+    private onSetChars(gridIdx: number, row: number, colStart: number, cells: any[][]) {
+        this.setChars(gridIdx, row, colStart, cells);
     }
 
-    private onClear() {
-        for (const line of this.grid) {
+    private onClear(gridIdx: number) {
+        const cells = this.grids.get(gridIdx).cells;
+        for (const line of cells) {
             for (let i = 0; i < line.length; i++) {
-                line[i] = { text: '', hlID: 0 };
+                line[i] = { text: ' ', hlID: 0 };
             }
         }
     }
 
-    private onCursorGoto(row: number, col: number) {
-        this.cursor = { row, col };
+    private onDestroy(gridIdx: number) {
+        this.grids.delete(gridIdx);
     }
 
-    private onScroll(top: number, bot: number, left: number, right: number, rows: number) {
-        this.scroll(top, bot, left, right, rows);
+    private onCursorGoto(gridIdx: number, row: number, col: number) {
+        this.cursor = { gridIdx, row, col };
+    }
+
+    private onScroll(gridIdx: number, top: number, bot: number, left: number, right: number, rows: number) {
+        this.scroll(gridIdx, top, bot, left, right, rows);
+    }
+
+    private onWinPos(gridIdx: number, win: number, startRow: number, startCol: number, width: number, height: number) {
+        const grid = this.grids.get(gridIdx);
+        grid.winnr = win;
+        grid.startRow = startRow;
+        grid.startCol = startCol;
+        grid.width = width;
+        grid.height = height;
+        grid.visible = true;
+    }
+
+    // tslint:disable-next-line:max-line-length
+    private onWinFloatPos(gridIdx: number, win: number, anchor: number, anchorGridIdx: number, anchorRow: number, anchorCol: number, focusable: boolean) {
+        const grid = this.grids.get(gridIdx);
+        const anchorGrid = this.grids.get(anchorGridIdx);
+        grid.winnr = win;
+        grid.startRow = anchorGrid.startRow + anchorRow;
+        grid.startCol = anchorGrid.startCol + anchorCol;
+    }
+
+    private onWinHide(gridIdx: number) {
+        const grid = this.grids.get(gridIdx);
+        grid.visible = false;
+    }
+
+    private onWinClose(gridIdx: number) {
+        const grid = this.grids.get(gridIdx);
+        grid.winnr = -1;
+        grid.visible = false;
     }
 
     private updateFont(size: number, family: string) {
@@ -290,14 +294,36 @@ export default class NeovimStore {
         };
     }
 
-    private updateGrid(rows: number, cols: number) {
-        this.grid = [];
+    private resizeGrid(gridIdx: number, rows: number, cols: number) {
+        const cells = [];
         for (let i = 0; i < rows; i++) {
             const line = [];
             for (let j = 0; j < cols; j++) {
-                line.push({ text: '', hlID: 0 });
+                line.push({ text: ' ', hlID: 0 });
             }
-            this.grid.push(line);
+            cells.push(line);
+        }
+        if (this.grids.has(gridIdx)) {
+            const grid = this.grids.get(gridIdx);
+            const rowsToCopy = Math.min(cells.length, grid.cells.length);
+            for (let i = 0; i < rowsToCopy; i++) {
+                const colsToCopy = Math.min(cells[i].length, grid.cells[i].length);
+                for (let j = 0; j < colsToCopy; j++) {
+                    cells[i][j] = grid.cells[i][j];
+                }
+            }
+            grid.cells = cells;
+        } else {
+            const grid = {
+                cells,
+                winnr: -1,
+                startRow: 0,
+                startCol: 0,
+                width: cols,
+                height: rows,
+                visible: true,
+            };
+            this.grids.set(gridIdx, grid);
         }
     }
 
@@ -326,7 +352,8 @@ export default class NeovimStore {
         };
     }
 
-    private setChars(row: number, colStart: number, cells: any[][]) {
+    private setChars(gridIdx: number, row: number, colStart: number, cells: any[][]) {
+        const grid = this.grids.get(gridIdx);
         let offset = 0;
         let hlID = 0;
         for (const cell of cells) {
@@ -336,29 +363,31 @@ export default class NeovimStore {
             }
             const times: number = cell.length === 3 ? cell[2] : 1;
             for (let i = 0; i < times; i++) {
-                this.grid[row][colStart + offset + i] = { text, hlID };
+                grid.cells[row][colStart + offset + i] = { text, hlID };
             }
             offset += times;
         }
     }
 
-    private scroll(top: number, bot: number, left: number, right: number, rows: number) {
+    private scroll(gridIdx: number, top: number, bot: number, left: number, right: number, rows: number) {
+        const grid = this.grids.get(gridIdx);
+        const cells = grid.cells;
         if (rows > 0) {
             for (let i = top; i < bot - rows; i++) {
-                this.scrollLine(i + rows, i, left, right);
+                const srcLine = cells[i + rows];
+                const dstLine = cells[i];
+                for (let j = left; j < right; j++) {
+                    dstLine[j] = srcLine[j];
+                }
             }
         } else {
             for (let i = bot - 1; i >= top - rows; i--) {
-                this.scrollLine(i + rows, i, left, right);
+                const srcLine = cells[i + rows];
+                const dstLine = cells[i];
+                for (let j = left; j < right; j++) {
+                    dstLine[j] = srcLine[j];
+                }
             }
-        }
-    }
-
-    private scrollLine(srcRow: number, dstRow: number, left: number, right: number) {
-        const srcLine = this.grid[srcRow];
-        const dstLine = this.grid[dstRow];
-        for (let j = left; j < right; j++) {
-            dstLine[j] = srcLine[j];
         }
     }
 
@@ -382,10 +411,10 @@ export default class NeovimStore {
             height,
         };
         if (rows !== rowsBefore || cols !== colsBefore) {
-            this.emit('grid-size-changed');
+            this.eventEmitter.emit('grid-size-changed');
         }
         if (width !== widthBefore || height !== heightBefore) {
-            this.emit('screen-size-changed');
+            this.eventEmitter.emit('screen-size-changed');
         }
     }
 }

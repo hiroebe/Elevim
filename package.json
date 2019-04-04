@@ -15,6 +15,7 @@
     "highlight.js": "^9.13.1",
     "marked": "^0.5.2",
     "neovim": "^4.2.1",
+    "strict-event-emitter-types": "^2.0.0",
     "toml": "^2.3.3",
     "wcwidth": "^1.0.1"
   },

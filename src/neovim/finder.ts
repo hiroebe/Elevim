@@ -77,7 +77,7 @@ export default class Finder {
         this.sources.set('term', new Term());
         this.sources.set('line', new Line());
 
-        store
+        store.eventEmitter
             .on('input', this.input.bind(this))
             .on('finder-show', this.show.bind(this));
     }
@@ -159,9 +159,9 @@ export default class Finder {
     }
 
     private hide() {
-        this.store.emit('finder-hide');
-        this.store.emit('wildmenu-hide');
-        this.store.emit('cmdline-hide');
+        this.store.eventEmitter.emit('finder-hide');
+        this.store.eventEmitter.emit('wildmenu-hide');
+        this.store.eventEmitter.emit('cmdline-hide');
     }
 
     private clear() {
@@ -182,20 +182,20 @@ export default class Finder {
 
     private emitCmdlineShow() {
         const content: Cell = { text: this.text, hlID: 0 };
-        this.store.emit('cmdline-show', [content], this.cursor, '', 0, 0);
+        this.store.eventEmitter.emit('cmdline-show', [content], this.cursor, '', 0, 0);
     }
 
     private emitCmdlinePos() {
-        this.store.emit('cmdline-pos', this.cursor, 0);
+        this.store.eventEmitter.emit('cmdline-pos', this.cursor, 0);
     }
 
     private emitWildmenuShow() {
         const itemLabels = this.filteredItems.map((item) => item.label);
-        this.store.emit('wildmenu-show', itemLabels, this.source.header);
+        this.store.eventEmitter.emit('wildmenu-show', itemLabels, this.source.header);
     }
 
     private emitWildmenuSelect() {
-        this.store.emit('wildmenu-select', this.selected);
+        this.store.eventEmitter.emit('wildmenu-select', this.selected);
     }
 
     private insert(key: string) {
