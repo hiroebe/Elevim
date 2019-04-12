@@ -99,7 +99,7 @@ export default class NeovimScreen {
 
         this.hiddenCtx.font = this.store.getFontStyle(hl);
         this.hiddenCtx.fillStyle = fg;
-        this.hiddenCtx.fillText(text, x, y + margin);
+        this.hiddenCtx.fillText(text, x, y + margin, rectWidth);
 
         if (hl.underline || hl.undercurl) {
             const ratio = window.devicePixelRatio;

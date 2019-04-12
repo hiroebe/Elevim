@@ -81,7 +81,7 @@ export default class Cursor {
                 this.ctx.textBaseline = 'top';
                 this.ctx.font = this.store.getFontStyle(hl);
                 this.ctx.fillStyle = hl.bg || defaultHl.bg;
-                this.ctx.fillText(cell.text, 0, margin);
+                this.ctx.fillText(cell.text, 0, margin, cursorWidth);
                 break;
             }
             case 'horizontal': {
