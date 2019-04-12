@@ -38,6 +38,7 @@ export default class NeovimProcess {
             // @ts-ignore
             ext_linegrid: true,
             ext_multigrid: true,
+            // ext_messages: true,
         });
         this.store.eventEmitter.on('grid-size-changed', () => this.client.uiTryResize(this.store.size.cols, this.store.size.rows));
     }
@@ -264,6 +265,39 @@ export default class NeovimProcess {
             }
             case 'cmdline_hide': {
                 this.store.eventEmitter.emit('cmdline-hide');
+                break;
+            }
+
+            // Message Events
+            case 'msg_show': {
+                // kind
+                // content
+                // replace_last
+                console.log(name, args);
+                break;
+            }
+            case 'msg_clear': {
+                console.log(name, args);
+                break;
+            }
+            case 'msg_showmode': {
+                // content
+                console.log(name, args);
+                break;
+            }
+            case 'msg_showcmd': {
+                // content
+                console.log(name, args);
+                break;
+            }
+            case 'msg_ruler': {
+                // content
+                console.log(name, args);
+                break;
+            }
+            case 'msg_history_show': {
+                // entries
+                console.log(name, args);
                 break;
             }
         }
