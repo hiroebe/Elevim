@@ -1,6 +1,6 @@
 import * as cp from 'child_process';
 import { remote } from 'electron';
-import { attach, Neovim, Tabpage } from 'neovim';
+import { attach, Neovim, Tabpage, Window } from 'neovim';
 import * as path from 'path';
 import Store, { Cell, Inputter, PopupmenuItem } from './store';
 
@@ -175,13 +175,13 @@ export default class NeovimProcess {
             }
             case 'win_float_pos': {
                 const grid: number = args[0];
-                const win: number = args[1];
-                const anchor: number = args[2];
+                const win: Window = args[1];
+                const anchor: string = args[2];
                 const anchorGrid: number = args[3];
                 const anchorRow: number = args[4];
                 const anchorCol: number = args[5];
                 const focusable: boolean = args[6];
-                this.store.eventEmitter.emit('win-float-pos', grid, win, anchor, anchorGrid, anchorRow, anchorCol, focusable);
+                this.store.eventEmitter.emit('win-float-pos', grid, win.id, anchor, anchorGrid, anchorRow, anchorCol, focusable);
                 break;
             }
             case 'win_external_pos': {

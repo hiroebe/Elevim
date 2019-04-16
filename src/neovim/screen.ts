@@ -130,22 +130,26 @@ export default class NeovimScreen {
         if (!this.store.winScrollingOver) {
             this.drawGrid(1);
         }
-        for (const gridIdx of this.store.grids.keys()) {
-            if (gridIdx === 1) {
-                continue;
-            }
-            this.drawGrid(gridIdx);
-        }
+        this.drawFGGrids('normal');
+        this.drawFGGrids('float');
         if (this.store.winScrollingOver) {
             this.drawGrid(1);
         }
     }
 
+    private drawFGGrids(display: 'normal' | 'float') {
+        for (const gridIdx of this.store.grids.keys()) {
+            if (gridIdx === 1) {
+                continue;
+            }
+            if (this.store.grids.get(gridIdx).display === display) {
+                this.drawGrid(gridIdx);
+            }
+        }
+    }
+
     private drawGrid(gridIdx: number) {
         const grid = this.store.grids.get(gridIdx);
-        if (!grid.visible) {
-            return;
-        }
         for (let i = 0; i < grid.cells.length; i++) {
             let text = grid.cells[i][0].text;
             let hlID = grid.cells[i][0].hlID;

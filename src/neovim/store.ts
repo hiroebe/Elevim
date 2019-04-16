@@ -54,7 +54,7 @@ export interface Grid {
     startCol: number;
     width: number;
     height: number;
-    visible: boolean;
+    display: 'normal' | 'float' | 'none';
 }
 
 export interface PopupmenuItem {
@@ -91,7 +91,7 @@ interface Events {
     'cursor-goto': (gridIdx: number, row: number, col: number) => void;
     'scroll': (gridIdx: number, top: number, bot: number, left: number, right: number, rows: number) => void;
     'win-pos': (gridIdx: number, win: number, startRow: number, startCol: number, width: number, height: number) => void;
-    'win-float-pos': (gridIdx: number, win: number, anchor: number, anchorGrid: number, anchorRow: number, anchorCol: number, focusable: boolean) => void;
+    'win-float-pos': (gridIdx: number, win: number, anchor: string, anchorGrid: number, anchorRow: number, anchorCol: number, focusable: boolean) => void;
     'win-external-pos': (gridIdx: number, win: number) => void;
     'win-hide': (gridIdx: number) => void;
     'win-scroll-over-start': () => void;
@@ -262,27 +262,44 @@ export default class NeovimStore {
         grid.startCol = startCol;
         grid.width = width;
         grid.height = height;
-        grid.visible = true;
+        grid.display = 'normal';
     }
 
     // tslint:disable-next-line:max-line-length
-    private onWinFloatPos(gridIdx: number, win: number, anchor: number, anchorGridIdx: number, anchorRow: number, anchorCol: number, focusable: boolean) {
+    private onWinFloatPos(gridIdx: number, win: number, anchor: string, anchorGridIdx: number, anchorRow: number, anchorCol: number, focusable: boolean) {
         const grid = this.grids.get(gridIdx);
         const anchorGrid = this.grids.get(anchorGridIdx);
         grid.winnr = win;
-        grid.startRow = anchorGrid.startRow + anchorRow;
-        grid.startCol = anchorGrid.startCol + anchorCol;
+        switch (anchor) {
+            case 'NW':
+                grid.startRow = anchorGrid.startRow + anchorRow;
+                grid.startCol = anchorGrid.startCol + anchorCol;
+                break;
+            case 'NE':
+                grid.startRow = anchorGrid.startRow + anchorRow;
+                grid.startCol = anchorGrid.startCol + anchorCol + grid.width;
+                break;
+            case 'SW':
+                grid.startRow = anchorGrid.startRow + anchorRow + grid.height;
+                grid.startCol = anchorGrid.startCol + anchorCol;
+                break;
+            case 'SE':
+                grid.startRow = anchorGrid.startRow + anchorRow + grid.height;
+                grid.startCol = anchorGrid.startCol + anchorCol + grid.width;
+                break;
+        }
+        grid.display = 'float';
     }
 
     private onWinHide(gridIdx: number) {
         const grid = this.grids.get(gridIdx);
-        grid.visible = false;
+        grid.display = 'none';
     }
 
     private onWinClose(gridIdx: number) {
         const grid = this.grids.get(gridIdx);
         grid.winnr = -1;
-        grid.visible = false;
+        grid.display = 'none';
     }
 
     private updateFont(size: number, family: string) {
@@ -313,15 +330,17 @@ export default class NeovimStore {
                 }
             }
             grid.cells = cells;
+            grid.width = cols;
+            grid.height = rows;
         } else {
-            const grid = {
+            const grid: Grid = {
                 cells,
                 winnr: -1,
                 startRow: 0,
                 startCol: 0,
                 width: cols,
                 height: rows,
-                visible: true,
+                display: 'normal',
             };
             this.grids.set(gridIdx, grid);
         }
