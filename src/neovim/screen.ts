@@ -94,9 +94,15 @@ export default class NeovimScreen {
         const margin = (this.store.lineHeight - 1.2) / 2 * height;
 
         const rectWidth = wcwidth(text) * width;
+        if (grid.display === 'float') {
+            this.hiddenCtx.globalAlpha = 0.9;
+        }
         this.hiddenCtx.fillStyle = bg;
         this.hiddenCtx.fillRect(x, y, rectWidth, height);
 
+        if (grid.display === 'float') {
+            this.hiddenCtx.globalAlpha = 0.8;
+        }
         this.hiddenCtx.font = this.store.getFontStyle(hl);
         this.hiddenCtx.fillStyle = fg;
         this.hiddenCtx.fillText(text, x, y + margin, rectWidth);
@@ -110,6 +116,9 @@ export default class NeovimScreen {
             this.hiddenCtx.moveTo(x, y + offsetY);
             this.hiddenCtx.lineTo(x + rectWidth, y + offsetY);
             this.hiddenCtx.stroke();
+        }
+        if (grid.display === 'float') {
+            this.hiddenCtx.globalAlpha = 1;
         }
 
         if (col <= 0) {
@@ -164,6 +173,16 @@ export default class NeovimScreen {
                 }
             }
             this.drawChars(gridIdx, text, hlID, i, grid.width - wcwidth(text));
+        }
+        if (grid.display === 'float') {
+            const { width, height } = this.store.font;
+            const x = grid.startCol * width;
+            const y = grid.startRow * height;
+            const w = grid.width * width;
+            const h = grid.height * height;
+            this.hiddenCtx.lineWidth = window.devicePixelRatio;
+            this.hiddenCtx.strokeStyle = 'black';
+            this.hiddenCtx.strokeRect(x, y, w, h);
         }
     }
 
