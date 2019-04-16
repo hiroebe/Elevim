@@ -34,7 +34,6 @@ export default class NeovimScreen {
             .on('update-specified-font', this.measureFont.bind(this))
             .on('default-colors-set', this.clear.bind(this))
             .on('clear', this.clear.bind(this))
-            .on('scroll', this.scroll.bind(this))
             .on('flush', this.scheduleFlush.bind(this));
     }
 
@@ -43,27 +42,6 @@ export default class NeovimScreen {
         const defaultHl = this.store.hlMap.get(0);
         this.hiddenCtx.fillStyle = defaultHl.bg;
         this.hiddenCtx.fillRect(0, 0, width, height);
-    }
-
-    private scroll(gridIdx: number, top: number, bot: number, left: number, right: number, rows: number) {
-        const grid = this.store.grids.get(gridIdx);
-        top += grid.startRow;
-        bot += grid.startRow;
-        left += grid.startCol;
-        right += grid.startCol;
-        const { width, height } = this.store.font;
-        const x = left * width;
-        const y = top * height;
-        const w = (right - left) * width;
-        const h = (bot - top) * height;
-        const dy = rows * height;
-
-        this.hiddenCtx.save();
-        this.hiddenCtx.beginPath();
-        this.hiddenCtx.rect(x, y, w, h);
-        this.hiddenCtx.clip();
-        this.hiddenCtx.drawImage(this.hiddenCanvas, 0, -dy);
-        this.hiddenCtx.restore();
     }
 
     private scheduleFlush() {
