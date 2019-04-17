@@ -41,7 +41,9 @@ export default class Neovim {
         this.finder = new Finder(this.store, this.process.getClient());
         this.markdown = new Markdown(this.store, this.process.getClient());
         this.imagePreview = new ImagePreview(this.store, this.process.getClient());
+    }
 
+    public start() {
         const configPath = path.join(process.env.HOME, '.config', 'elevim', 'config.toml');
         fs.readFile(configPath, { encoding: 'utf8' }, (_, data: Buffer) => {
             const config: IConfig = toml.parse(data.toString());
