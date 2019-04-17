@@ -56,8 +56,8 @@ export default class Input {
         const { width, height, size, family } = this.store.font;
         const { row, col } = this.store.cursor;
         const hl = this.store.hlMap.get(0);
-        this.element.style.color = hl.fg;
-        this.element.style.backgroundColor = hl.bg;
+        // this.element.style.color = hl.fg;
+        // this.element.style.backgroundColor = hl.bg;
         this.element.style.width = 'auto';
         this.element.style.font = size + 'px ' + family;
         this.element.style.top = row * height / ratio + 'px';

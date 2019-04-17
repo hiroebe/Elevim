@@ -1,7 +1,7 @@
 import { remote } from 'electron';
 import { EventEmitter } from 'events';
 import StrictEventEmitter from 'strict-event-emitter-types';
-import { colorToHexString } from '../utils';
+import { intToColor } from '../utils';
 
 export interface Font {
     family: string;
@@ -31,10 +31,16 @@ export interface ModeInfo {
     attrID: number;
 }
 
+export interface Color {
+    r: number;
+    g: number;
+    b: number;
+}
+
 export interface Highlight {
-    fg: string;
-    bg: string;
-    sp: string;
+    fg: Color;
+    bg: Color;
+    sp: Color;
     reverse: boolean;
     italic: boolean;
     bold: boolean;
@@ -48,6 +54,7 @@ export interface Cell {
 }
 
 export interface Grid {
+    elem: HTMLDivElement;
     cells: Cell[][];
     winnr: number;
     startRow: number;
@@ -169,18 +176,17 @@ export default class NeovimStore {
             .prependListener('finder-hide', () => this.inputDirection = Inputter.nvim);
     }
 
-    public getFontStyle(hl: Highlight): string {
-        const ratio = window.devicePixelRatio;
+    public getFontStyle(hl?: Highlight): string {
         const { size, family } = this.font;
 
         let attrs = '';
-        if (hl.bold) {
+        if (hl && hl.bold) {
             attrs += 'bold ';
         }
-        if (hl.italic) {
+        if (hl && hl.italic) {
             attrs += 'italic ';
         }
-        return attrs + size * ratio + 'px ' + family;
+        return attrs + size + 'px/' + this.lineHeight + ' ' + family;
     }
 
     public inputKey(key: string) {
@@ -244,6 +250,7 @@ export default class NeovimStore {
     }
 
     private onDestroy(gridIdx: number) {
+        this.grids.get(gridIdx).elem.remove();
         this.grids.delete(gridIdx);
     }
 
@@ -263,6 +270,9 @@ export default class NeovimStore {
         grid.width = width;
         grid.height = height;
         grid.display = 'normal';
+        grid.elem.style.display = 'block';
+        grid.elem.style.zIndex = '0';
+        this.resizeCanvas(gridIdx);
     }
 
     // tslint:disable-next-line:max-line-length
@@ -289,17 +299,22 @@ export default class NeovimStore {
                 break;
         }
         grid.display = 'float';
+        grid.elem.style.display = 'block';
+        grid.elem.style.zIndex = '1';
+        this.resizeCanvas(gridIdx);
     }
 
     private onWinHide(gridIdx: number) {
         const grid = this.grids.get(gridIdx);
         grid.display = 'none';
+        grid.elem.style.display = 'none';
     }
 
     private onWinClose(gridIdx: number) {
         const grid = this.grids.get(gridIdx);
         grid.winnr = -1;
         grid.display = 'none';
+        grid.elem.style.display = 'none';
     }
 
     private updateFont(size: number, family: string) {
@@ -334,6 +349,7 @@ export default class NeovimStore {
             grid.height = rows;
         } else {
             const grid: Grid = {
+                elem: this.newGridElement(),
                 cells,
                 winnr: -1,
                 startRow: 0,
@@ -342,8 +358,12 @@ export default class NeovimStore {
                 height: rows,
                 display: 'normal',
             };
+            if (gridIdx === 1) {
+                grid.elem.style.zIndex = '-1';
+            }
             this.grids.set(gridIdx, grid);
         }
+        this.resizeCanvas(gridIdx);
     }
 
     private newHighlight(
@@ -356,13 +376,10 @@ export default class NeovimStore {
         underline: boolean = false,
         undercurl: boolean = false,
     ): Highlight {
-        const fgString = fg === -1 ? null : colorToHexString(fg);
-        const bgString = bg === -1 ? null : colorToHexString(bg);
-        const spString = sp === -1 ? null : colorToHexString(sp);
         return {
-            fg: fgString,
-            bg: bgString,
-            sp: spString,
+            fg: fg === -1 ? null : intToColor(fg),
+            bg: bg === -1 ? null : intToColor(bg),
+            sp: sp === -1 ? null : intToColor(sp),
             reverse,
             italic,
             bold,
@@ -416,10 +433,9 @@ export default class NeovimStore {
         const widthBefore = this.size.width;
         const heightBefore = this.size.height;
 
-        const ratio = window.devicePixelRatio;
         const container = document.getElementById('container') as HTMLDivElement;
-        const width = container.clientWidth * ratio;
-        const height = container.clientHeight * ratio;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
 
         const rows = Math.floor(height / this.font.height);
         const cols = Math.floor(width / this.font.width);
@@ -435,5 +451,20 @@ export default class NeovimStore {
         if (width !== widthBefore || height !== heightBefore) {
             this.eventEmitter.emit('screen-size-changed');
         }
+    }
+
+    private newGridElement(): HTMLDivElement {
+        const elem = document.createElement('div');
+        elem.style.position = 'absolute';
+        elem.style.whiteSpace = 'pre';
+        document.getElementById('screen').appendChild(elem);
+        return elem;
+    }
+
+    private resizeCanvas(gridIdx: number) {
+        const grid = this.grids.get(gridIdx);
+
+        grid.elem.style.top = grid.startRow * this.font.height + 'px';
+        grid.elem.style.left = grid.startCol * this.font.width + 'px';
     }
 }

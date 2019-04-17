@@ -1,16 +1,19 @@
-export function colorToHexString(color: number): string {
-    return '#' + ('000000' + color.toString(16)).substr(-6);
+import { Color } from './neovim/store';
+
+export function intToColor(i: number): Color {
+    const r = (i >> 16) % 256;
+    const g = (i >> 8) % 256;
+    const b = i % 256;
+    return {r, g, b};
 }
 
-export function shiftColor(color: string, rate: number): string {
-    const colorInt = parseInt(color.slice(1), 16);
-    let r = (colorInt >> 16) % 256;
-    let g = (colorInt >> 8) % 256;
-    let b = colorInt % 256;
-    r = Math.floor(Math.min(Math.max(0, r * rate), 255));
-    g = Math.floor(Math.min(Math.max(0, g * rate), 255));
-    b = Math.floor(Math.min(Math.max(0, b * rate), 255));
+export function colorToCSS(color: Color, opacity: number = 1): string {
+    return 'rgba(' + color.r + ', ' + color.g + ', ' + color.b + ', ' + opacity + ')';
+}
 
-    const newColor = (r << 16) + (g << 8) + b;
-    return colorToHexString(newColor);
+export function shiftColor(color: Color, rate: number): Color {
+    const r = Math.floor(Math.min(Math.max(0, color.r * rate), 255));
+    const g = Math.floor(Math.min(Math.max(0, color.g * rate), 255));
+    const b = Math.floor(Math.min(Math.max(0, color.b * rate), 255));
+    return {r, g, b};
 }

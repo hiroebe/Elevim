@@ -1,5 +1,5 @@
-import { shiftColor } from '../utils';
 import Store from './store';
+import { colorToCSS, shiftColor } from '../utils';
 
 export default class NeovimTabline {
     private padding: number = 3;
@@ -34,15 +34,15 @@ export default class NeovimTabline {
 
             if (i > 0) {
                 div.style.borderLeft = '1px solid';
-                div.style.borderColor = shiftColor(hl.fg, 0.5);
+                div.style.borderColor = colorToCSS(shiftColor(hl.fg, 0.5));
             }
 
             if (i === tabnr) {
-                div.style.color = hl.fg;
-                div.style.backgroundColor = hl.bg;
+                div.style.color = colorToCSS(hl.fg);
+                div.style.backgroundColor = colorToCSS(hl.bg);
             } else {
-                div.style.color = shiftColor(hl.fg, 0.5);
-                div.style.backgroundColor = shiftColor(hl.bg, 0.5);
+                div.style.color = colorToCSS(shiftColor(hl.fg, 0.5));
+                div.style.backgroundColor = colorToCSS(shiftColor(hl.bg, 0.5));
             }
 
             this.element.appendChild(div);
@@ -55,8 +55,7 @@ export default class NeovimTabline {
     }
 
     private resize() {
-        const ratio = window.devicePixelRatio;
-        this.element.style.height = this.store.font.height / ratio + this.padding * 2 + 'px';
+        this.element.style.height = this.store.font.height + this.padding * 2 + 'px';
         this.store.eventEmitter.emit('check-resize');
     }
 }

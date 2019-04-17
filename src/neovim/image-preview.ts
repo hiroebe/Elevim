@@ -44,7 +44,7 @@ export default class NeovimImagePreview {
     }
 
     private show(path: string) {
-        this.element.style.backgroundColor = this.store.hlMap.get(0).bg;
+        // this.element.style.backgroundColor = this.store.hlMap.get(0).bg;
 
         const img = document.createElement('img');
         img.src = path + '?' + new Date().getTime();

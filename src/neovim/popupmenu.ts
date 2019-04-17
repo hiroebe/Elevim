@@ -1,4 +1,5 @@
 import Store, { PopupmenuItem } from './store';
+import { colorToCSS } from '../utils';
 
 export default class NeovimPopupmenu {
     private element: HTMLUListElement;
@@ -47,28 +48,27 @@ export default class NeovimPopupmenu {
             this.element.appendChild(li);
         }
 
-        const ratio = window.devicePixelRatio;
         const { width, height, size, family } = this.store.font;
 
         if (row + elemRows < this.store.size.rows) {
             // show below cursor
-            this.element.style.top = (row + 1) * height / ratio + 'px';
+            this.element.style.top = (row + 1) * height + 'px';
             this.element.style.boxShadow = '3px 3px 3px 3px black';
         } else {
             // show above cursor
-            this.element.style.top = (row - elemRows) * height / ratio + 'px';
+            this.element.style.top = (row - elemRows) * height + 'px';
             this.element.style.boxShadow = '3px -3px 3px 3px black';
         }
-        this.element.style.left = (col - 1) * width / ratio + 'px';
+        this.element.style.left = (col - 1) * width + 'px';
 
         this.element.style.font = size + 'px ' + family;
         this.element.style.lineHeight = '' + this.store.lineHeight;
-        this.element.style.maxHeight = elemRows * height / ratio + 'px';
+        this.element.style.maxHeight = elemRows * height + 'px';
         this.element.style.display = 'block';
 
         const hl = this.store.hlMap.get(0);
-        this.element.style.color = hl.fg;
-        this.element.style.backgroundColor = hl.bg;
+        this.element.style.color = colorToCSS(hl.fg);
+        this.element.style.backgroundColor = colorToCSS(hl.bg);
 
         this.select(selected);
     }
@@ -83,8 +83,8 @@ export default class NeovimPopupmenu {
 
         const li = this.element.children[select] as HTMLLIElement;
         if (li) {
-            li.style.color = hl.bg;
-            li.style.backgroundColor = hl.fg;
+            li.style.color = colorToCSS(hl.bg);
+            li.style.backgroundColor = colorToCSS(hl.fg);
             // @ts-ignore
             li.scrollIntoViewIfNeeded(false);
         }
@@ -93,14 +93,14 @@ export default class NeovimPopupmenu {
             ? this.element.lastChild as HTMLLIElement
             : this.element.children[select - 1] as HTMLLIElement;
         if (beforeLi) {
-            beforeLi.style.color = hl.fg;
-            beforeLi.style.backgroundColor = hl.bg;
+            beforeLi.style.color = colorToCSS(hl.fg);
+            beforeLi.style.backgroundColor = colorToCSS(hl.bg);
         }
 
         const afterLi = this.element.children[select + 1] as HTMLLIElement;
         if (afterLi) {
-            afterLi.style.color = hl.fg;
-            afterLi.style.backgroundColor = hl.bg;
+            afterLi.style.color = colorToCSS(hl.fg);
+            afterLi.style.backgroundColor = colorToCSS(hl.bg);
         }
     }
 

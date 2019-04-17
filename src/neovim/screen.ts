@@ -2,46 +2,22 @@ import wcwidth = require('wcwidth');
 import Cursor from './cursor';
 import Input from './input';
 import Store from './store';
-
-interface IRect {
-    top: number;
-    bot: number;
-    left: number;
-    right: number;
-}
+import { colorToCSS } from '../utils';
 
 export default class NeovimScreen {
     private cursor: Cursor;
     private input: Input;
-    private canvas: HTMLCanvasElement;
-    private hiddenCanvas: HTMLCanvasElement;
-    private ctx: CanvasRenderingContext2D;
-    private hiddenCtx: CanvasRenderingContext2D;
     private flushTimer: number;
 
     constructor(private readonly store: Store) {
         this.cursor = new Cursor(store);
         this.input = new Input(store);
-        this.canvas = document.getElementById('screen') as HTMLCanvasElement;
-        this.hiddenCanvas = document.getElementById('hidden-screen') as HTMLCanvasElement;
-        this.ctx = this.canvas.getContext('2d');
-        this.hiddenCtx = this.hiddenCanvas.getContext('2d');
 
-        this.canvas.addEventListener('click', () => this.input.focus());
+        document.getElementById('container').addEventListener('click', () => this.input.focus());
 
         store.eventEmitter
-            .on('grid-size-changed', this.resize.bind(this))
             .on('update-specified-font', this.measureFont.bind(this))
-            .on('default-colors-set', this.clear.bind(this))
-            .on('clear', this.clear.bind(this))
             .on('flush', this.scheduleFlush.bind(this));
-    }
-
-    private clear() {
-        const { width, height } = this.store.size;
-        const defaultHl = this.store.hlMap.get(0);
-        this.hiddenCtx.fillStyle = defaultHl.bg;
-        this.hiddenCtx.fillRect(0, 0, width, height);
     }
 
     private scheduleFlush() {
@@ -52,91 +28,18 @@ export default class NeovimScreen {
     }
 
     private flush() {
-        this.redrawAll();
-        this.ctx.drawImage(this.hiddenCanvas, 0, 0);
-    }
-
-    private drawChars(gridIdx: number, text: string, hlID: number, row: number, col: number) {
-        const grid = this.store.grids.get(gridIdx);
-        const hl = this.store.hlMap.get(hlID);
-        const defaultHl = this.store.hlMap.get(0);
-        let fg = hl.fg || defaultHl.fg;
-        let bg = hl.bg || defaultHl.bg;
-        if (hl.reverse) {
-            [fg, bg] = [bg, fg];
-        }
-
-        const { width, height } = this.store.font;
-        const x = (col + grid.startCol) * width;
-        const y = (row + grid.startRow) * height;
-        const margin = (this.store.lineHeight - 1.2) / 2 * height;
-
-        const rectWidth = wcwidth(text) * width;
-        if (grid.display === 'float') {
-            this.hiddenCtx.globalAlpha = 0.9;
-        }
-        this.hiddenCtx.fillStyle = bg;
-        this.hiddenCtx.fillRect(x, y, rectWidth, height);
-
-        if (grid.display === 'float') {
-            this.hiddenCtx.globalAlpha = 0.8;
-        }
-        this.hiddenCtx.font = this.store.getFontStyle(hl);
-        this.hiddenCtx.fillStyle = fg;
-        this.hiddenCtx.fillText(text, x, y + margin, rectWidth);
-
-        if (hl.underline || hl.undercurl) {
-            const ratio = window.devicePixelRatio;
-            const offsetY = height - 3 * ratio;
-            this.hiddenCtx.lineWidth = ratio;
-            this.hiddenCtx.strokeStyle = hl.sp || defaultHl.sp || fg;
-            this.hiddenCtx.beginPath();
-            this.hiddenCtx.moveTo(x, y + offsetY);
-            this.hiddenCtx.lineTo(x + rectWidth, y + offsetY);
-            this.hiddenCtx.stroke();
-        }
-        if (grid.display === 'float') {
-            this.hiddenCtx.globalAlpha = 1;
-        }
-
-        if (col <= 0) {
-            return;
-        }
-        const leftCell = grid.cells[row][col - 1];
-        const leftCellHl = this.store.hlMap.get(leftCell.hlID);
-        if (leftCellHl.italic) {
-            this.drawChars(gridIdx, leftCell.text, leftCell.hlID, row, col - 1);
-        }
-    }
-
-    private redrawAll() {
-        const defaultHl = this.store.hlMap.get(0);
-        this.hiddenCtx.fillStyle = defaultHl.bg;
-        this.hiddenCtx.fillRect(0, 0, this.store.size.width, this.store.size.height);
-
-        if (!this.store.winScrollingOver) {
-            this.drawGrid(1);
-        }
-        this.drawFGGrids('normal');
-        this.drawFGGrids('float');
-        if (this.store.winScrollingOver) {
-            this.drawGrid(1);
-        }
-    }
-
-    private drawFGGrids(display: 'normal' | 'float') {
         for (const gridIdx of this.store.grids.keys()) {
-            if (gridIdx === 1) {
-                continue;
-            }
-            if (this.store.grids.get(gridIdx).display === display) {
-                this.drawGrid(gridIdx);
-            }
+            this.drawGrid(gridIdx);
         }
     }
 
     private drawGrid(gridIdx: number) {
         const grid = this.store.grids.get(gridIdx);
+        if (grid.display === 'none') {
+            return;
+        }
+        const floating = grid.display === 'float';
+        let html = '';
         for (let i = 0; i < grid.cells.length; i++) {
             let text = grid.cells[i][0].text;
             let hlID = grid.cells[i][0].hlID;
@@ -145,45 +48,74 @@ export default class NeovimScreen {
                 if (cell.hlID === hlID) {
                     text += cell.text;
                 } else {
-                    this.drawChars(gridIdx, text, hlID, i, j - wcwidth(text));
+                    html += this.buildSpanElem(text, hlID, floating);
                     text = cell.text;
                     hlID = cell.hlID;
                 }
             }
-            this.drawChars(gridIdx, text, hlID, i, grid.width - wcwidth(text));
+            html += this.buildSpanElem(text, hlID, floating);
+            html += '<br>';
         }
-        if (grid.display === 'float') {
-            const { width, height } = this.store.font;
-            const x = grid.startCol * width;
-            const y = grid.startRow * height;
-            const w = grid.width * width;
-            const h = grid.height * height;
-            this.hiddenCtx.lineWidth = window.devicePixelRatio;
-            this.hiddenCtx.strokeStyle = 'black';
-            this.hiddenCtx.strokeRect(x, y, w, h);
+        grid.elem.style.font = this.store.getFontStyle();
+        grid.elem.innerHTML = html;
+
+        if (floating) {
+            grid.elem.style.border = '1px solid black';
+        } else {
+            grid.elem.style.border = 'none';
         }
     }
 
-    private resize() {
-        const ratio = window.devicePixelRatio;
-        const { width, height } = this.store.size;
-
-        for (const elem of [this.canvas, this.hiddenCanvas]) {
-            elem.width = width;
-            elem.height = height;
-            elem.style.width = width / ratio + 'px';
-            elem.style.height = height / ratio + 'px';
+    private objToCSS(map: { [key: string]: string }): string {
+        let style = '';
+        for (const key in map) {
+            style += key + ': ' + map[key] + ';';
         }
+        return style;
+    }
 
-        this.hiddenCtx.textBaseline = 'top';
+    private buildSpanElem(text: string, hlID: number, floating: boolean = false): string {
+        const escaped = text.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;')
+            .replace(/[^\x20-\x7e]/g, (match: string) => {
+                const style = this.objToCSS({
+                    'display': 'inline-block',
+                    'width': wcwidth(match) * this.store.font.width + 'px',
+                });
+                return '<span style="' + style + '">' + match + '</span>';
+            });
+        const style = this.objToCSS({ 'display': 'inline-block' });
+        return '<span style="' + this.buildCSSStyle(hlID, floating) + style + '">' + escaped + '</span>';
+    }
+
+    private buildCSSStyle(hlID: number, floating: boolean): string {
+        const hl = this.store.hlMap.get(hlID);
+        const defaultHl = this.store.hlMap.get(0);
+        let fg = colorToCSS(hl.fg || defaultHl.fg, floating ? 0.8 : 1);
+        let bg = colorToCSS(hl.bg || defaultHl.bg, floating ? 0.9 : 1);
+        if (hl.reverse) {
+            [fg, bg] = [bg, fg];
+        }
+        const font = this.store.getFontStyle(hl);
+        return this.objToCSS({
+            'color': fg,
+            'background-color': bg,
+            'font': font,
+        })
     }
 
     private measureFont() {
-        const ratio = window.devicePixelRatio;
-        const { size, family } = this.store.font;
-        this.hiddenCtx.font = size * ratio + 'px ' + family;
-        const width = this.hiddenCtx.measureText('A').width;
-        const height = Math.floor(width * 2 * this.store.lineHeight);
+        const e = document.createElement('span');
+        e.style.position = 'absolute';
+        e.style.font = this.store.getFontStyle();
+        e.innerText = 'A';
+        document.body.appendChild(e);
+        const width = e.clientWidth;
+        const height = e.clientHeight;
+        e.remove();
         this.store.eventEmitter.emit('update-font-size', width, height);
     }
 }

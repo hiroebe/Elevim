@@ -30,9 +30,6 @@
       #cursor {
         position: absolute;
       }
-      #hidden-screen {
-        display: none;
-      }
       #input {
         width: 1px;
         color: transparent;
@@ -84,8 +81,8 @@
   <body>
     <div id="tabline"></div>
     <div id="container">
-      <canvas id="screen"></canvas>
-      <canvas id="cursor"></canvas>
+      <div id="screen"></div>
+      <span id="cursor"></span>
       <input id="input" autocomplete="off" autofocus />
       <ul id="popupmenu"></ul>
     </div>
@@ -96,7 +93,6 @@
       <ul id="wildmenu"></ul>
     </div>
     <div id="image-preview"></div>
-    <canvas id="hidden-screen"></canvas>
   </body>
 
   <script>

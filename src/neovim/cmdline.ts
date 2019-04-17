@@ -1,5 +1,5 @@
 import wcwidth = require('wcwidth');
-import { shiftColor } from '../utils';
+import { colorToCSS, shiftColor } from '../utils';
 import Store, { Cell } from './store';
 
 export default class NeovimCmdline {
@@ -49,20 +49,18 @@ export default class NeovimCmdline {
             this.cmdline.removeChild(this.cmdline.firstChild);
         }
 
-        const ratio = window.devicePixelRatio;
-
         const firstcSpan = document.createElement('span');
         firstcSpan.innerText = firstc;
         this.cmdline.appendChild(firstcSpan);
 
         const correctPos = this.calcCorrectPos(pos);
-        this.cursor.style.left = correctPos * this.store.font.width / ratio + 1 + 'px';
+        this.cursor.style.left = correctPos * this.store.font.width + 1 + 'px';
         this.cmdline.appendChild(this.cursor);
 
         for (const cell of content) {
             const span = document.createElement('span');
             const hl = this.store.hlMap.get(cell.hlID);
-            span.style.color = hl.fg;
+            span.style.color = colorToCSS(hl.fg);
             span.innerText = cell.text;
             this.cmdline.appendChild(span);
         }
@@ -71,9 +69,8 @@ export default class NeovimCmdline {
     }
 
     private setpos(pos: number, level: number) {
-        const ratio = window.devicePixelRatio;
         const correctPos = this.calcCorrectPos(pos);
-        this.cursor.style.left = correctPos * this.store.font.width / ratio + 1 + 'px';
+        this.cursor.style.left = correctPos * this.store.font.width + 1 + 'px';
     }
 
     private hide() {
@@ -88,7 +85,7 @@ export default class NeovimCmdline {
         } else {
             const hl = this.store.hlMap.get(0);
             this.header.innerText = header;
-            this.header.style.color = shiftColor(hl.fg, 0.5);
+            this.header.style.color = colorToCSS(shiftColor(hl.fg, 0.5));
             this.header.style.display = 'block';
         }
         while (this.wildmenu.firstChild) {
@@ -110,8 +107,8 @@ export default class NeovimCmdline {
 
         const li = this.wildmenu.children[selected] as HTMLLIElement;
         if (li) {
-            li.style.color = hl.bg;
-            li.style.backgroundColor = hl.fg;
+            li.style.color = colorToCSS(hl.bg);
+            li.style.backgroundColor = colorToCSS(hl.fg);
             // @ts-ignore
             li.scrollIntoViewIfNeeded(false);
         }
@@ -124,16 +121,16 @@ export default class NeovimCmdline {
             ? this.wildmenu.lastChild as HTMLLIElement
             : this.wildmenu.children[selected - 1] as HTMLLIElement;
         if (beforeLi) {
-            beforeLi.style.color = hl.fg;
-            beforeLi.style.backgroundColor = hl.bg;
+            beforeLi.style.color = colorToCSS(hl.fg);
+            beforeLi.style.backgroundColor = colorToCSS(hl.bg);
         }
 
         const afterLi = selected === this.wildmenu.children.length - 1
             ? this.wildmenu.firstChild as HTMLLIElement
             : this.wildmenu.children[selected + 1] as HTMLLIElement;
         if (afterLi) {
-            afterLi.style.color = hl.fg;
-            afterLi.style.backgroundColor = hl.bg;
+            afterLi.style.color = colorToCSS(hl.fg);
+            afterLi.style.backgroundColor = colorToCSS(hl.bg);
         }
     }
 
@@ -145,12 +142,11 @@ export default class NeovimCmdline {
     }
 
     private resize() {
-        const ratio = window.devicePixelRatio;
         const { width, height } = this.store.size;
         this.container.style.top = '0px';
-        this.container.style.left = width * 0.1 / ratio + 'px';
-        this.container.style.width = width * 0.8 / ratio + 'px';
-        this.wildmenu.style.maxHeight = height * 0.8 / ratio + 'px';
+        this.container.style.left = width * 0.1 + 'px';
+        this.container.style.width = width * 0.8 + 'px';
+        this.wildmenu.style.maxHeight = height * 0.8 + 'px';
     }
 
     private setFont() {
@@ -163,10 +159,10 @@ export default class NeovimCmdline {
         if (!hl.fg || !hl.bg) {
             return;
         }
-        this.container.style.color = hl.fg;
-        this.container.style.backgroundColor = hl.bg;
-        this.cmdline.style.backgroundColor = shiftColor(hl.bg, 0.5);
-        this.cursor.style.borderColor = hl.fg;
+        this.container.style.color = colorToCSS(hl.fg);
+        this.container.style.backgroundColor = colorToCSS(hl.bg);
+        this.cmdline.style.backgroundColor = colorToCSS(shiftColor(hl.bg, 0.5));
+        this.cursor.style.borderColor = colorToCSS(hl.fg);
     }
 
     private calcCorrectPos(pos: number): number {
