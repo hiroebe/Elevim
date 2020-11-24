@@ -12,7 +12,7 @@
   "repository": "https://github.com/hiroebe/elevim",
   "author": "hiroebe",
   "dependencies": {
-    "highlight.js": "^9.18.1",
+    "highlight.js": "^10.1.2",
     "marked": "^0.8.0",
     "neovim": "^4.8.0",
     "toml": "^2.3.3",
