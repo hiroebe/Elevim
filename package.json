@@ -24,7 +24,7 @@
     "@types/msgpack-lite": "^0.1.7",
     "@types/node": "^12.12.30",
     "@types/wcwidth": "^1.0.0",
-    "electron": "^3.1.13",
+    "electron": "^13.6.6",
     "electron-packager": "^14.2.1",
     "typescript": "^3.8.3"
   }
